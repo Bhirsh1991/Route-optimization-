@@ -26,8 +26,9 @@
         <div class="mb-4 p-3 bg-blue-50 rounded-md border border-blue-200">
             <label for="startAddressInput" class="block text-blue-700 text-sm font-bold mb-2">נקודת התחלה:</label>
             <div class="flex mb-2">
-                <input type="text" id="startAddressInput" placeholder="הזן כתובת התחלה"
+                <input type="text" id="startAddressInput" list="startSuggestions" placeholder="הזן כתובת התחלה"
                        class="shadow appearance-none border rounded-l w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline flex-grow">
+                <datalist id="startSuggestions"></datalist>
                 <button id="setStartLocationBtn"
                         class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-r focus:outline-none focus:shadow-outline">
                     הגדר
@@ -43,8 +44,9 @@
         <div class="mb-4 p-3 bg-blue-50 rounded-md border border-blue-200">
             <label for="endAddressInput" class="block text-blue-700 text-sm font-bold mb-2">נקודת סיום:</label>
             <div class="flex mb-2">
-                <input type="text" id="endAddressInput" placeholder="הזן כתובת סיום"
+                <input type="text" id="endAddressInput" list="endSuggestions" placeholder="הזן כתובת סיום"
                        class="shadow appearance-none border rounded-l w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline flex-grow">
+                <datalist id="endSuggestions"></datalist>
                 <button id="setEndLocationBtn"
                         class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-r focus:outline-none focus:shadow-outline">
                     הגדר
@@ -60,8 +62,9 @@
         <div class="mb-4">
             <label for="intermediateAddressInput" class="block text-gray-700 text-sm font-bold mb-2">הזן מיקום ביניים:</label>
             <div class="flex">
-                <input type="text" id="intermediateAddressInput" placeholder="לדוגמה: רחוב הרצל 1, תל אביב"
+                <input type="text" id="intermediateAddressInput" list="intermediateSuggestions" placeholder="לדוגמה: רחוב הרצל 1, תל אביב"
                        class="shadow appearance-none border rounded-l w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline flex-grow">
+                <datalist id="intermediateSuggestions"></datalist>
                 <button id="addIntermediateLocationBtn"
                         class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-r focus:outline-none focus:shadow-outline">
                     הוסף
@@ -130,6 +133,13 @@
         const optimizedRouteList = document.getElementById('optimizedRouteList');
         const messageBox = document.getElementById('messageBox');
         const openInGoogleMapsBtn = document.getElementById('openInGoogleMapsBtn');
+        const startSuggestions = document.getElementById('startSuggestions');
+        const endSuggestions = document.getElementById('endSuggestions');
+        const intermediateSuggestions = document.getElementById('intermediateSuggestions');
+
+        startAddressInput.addEventListener('input', () => updateSuggestions(startAddressInput, startSuggestions));
+        endAddressInput.addEventListener('input', () => updateSuggestions(endAddressInput, endSuggestions));
+        intermediateAddressInput.addEventListener('input', () => updateSuggestions(intermediateAddressInput, intermediateSuggestions));
 
         // Maximum number of intermediate points for TSP (brute force)
         const TSP_MAX_INTERMEDIATE_POINTS = 8; // 8! = 40,320 permutations, 9! = 362,880, 10! = 3,628,800. 8 is safer for browser performance.
@@ -149,13 +159,43 @@
             }, 5000);
         }
 
+        function detectLanguage(text) {
+            return /[\u0590-\u05FF]/.test(text) ? 'he' : 'en';
+        }
+
+        async function fetchAddressSuggestions(query, lang) {
+            const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&accept-language=${lang}&q=${encodeURIComponent(query)}`;
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error('Suggestion fetch failed');
+                }
+                const data = await response.json();
+                return data.map(item => item.display_name);
+            } catch (e) {
+                console.error('Autocomplete error:', e);
+                return [];
+            }
+        }
+
+        async function updateSuggestions(inputElem, listElem) {
+            const q = inputElem.value.trim();
+            if (q.length < 2) {
+                listElem.innerHTML = '';
+                return;
+            }
+            const lang = detectLanguage(q);
+            const suggestions = await fetchAddressSuggestions(q, lang);
+            listElem.innerHTML = suggestions.map(s => `<option value="${s}"></option>`).join('');
+        }
+
         /**
          * Performs geocoding (address to coordinates) using Nominatim.
          * @param {string} address - The address string.
          * @returns {Promise<{ lat: number, lng: number, address: string } | null>} - Location data or null if not found.
          */
-        async function geocodeAddress(address) {
-            const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(address)}`;
+        async function geocodeAddress(address, lang = 'en') {
+            const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&accept-language=${lang}&q=${encodeURIComponent(address)}`;
             try {
                 // Note: browsers disallow setting a custom User-Agent header.
                 // Nominatim accepts requests as long as a Referer header is present,
@@ -244,7 +284,7 @@
             const address = startAddressInput.value.trim();
             if (address) {
                 showMessage('מחפש כתובת לנקודת התחלה...', 'info');
-                const locData = await geocodeAddress(address);
+                const locData = await geocodeAddress(address, detectLanguage(address));
                 if (locData) {
                     startLocation = locData;
                     updateFixedLocationDisplays(); // Update the text display
@@ -272,7 +312,7 @@
             const address = endAddressInput.value.trim();
             if (address) {
                 showMessage('מחפש כתובת לנקודת סיום...', 'info');
-                const locData = await geocodeAddress(address);
+                const locData = await geocodeAddress(address, detectLanguage(address));
                 if (locData) {
                     endLocation = locData;
                     updateFixedLocationDisplays(); // Update the text display
@@ -300,7 +340,7 @@
             const address = intermediateAddressInput.value.trim();
             if (address) {
                 showMessage('מחפש כתובת למיקום ביניים...', 'info');
-                const locData = await geocodeAddress(address);
+                const locData = await geocodeAddress(address, detectLanguage(address));
                 if (locData) {
                     addIntermediateLocation(locData);
                     intermediateAddressInput.value = ''; // Clear input field
