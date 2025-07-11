@@ -156,9 +156,10 @@
         async function geocodeAddress(address) {
             const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(address)}`;
             try {
-                const response = await fetch(url, {
-                    headers: { 'User-Agent': 'TravelOptimizerApp/1.0' } // User-Agent is mandatory for Nominatim
-                });
+                // Note: browsers disallow setting a custom User-Agent header.
+                // Nominatim accepts requests as long as a Referer header is present,
+                // so we simply perform a standard fetch without custom headers.
+                const response = await fetch(url);
                 if (!response.ok) {
                     throw new Error(`Nominatim geocoding failed with status: ${response.status}`);
                 }
