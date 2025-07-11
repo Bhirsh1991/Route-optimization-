@@ -222,8 +222,20 @@
          * Updates the display of fixed start and end locations.
          */
         function updateFixedLocationDisplays() {
-            currentStartLocationDiv.innerHTML = `<span class="font-semibold">התחלה:</span> ${startLocation ? startLocation.address : 'לא הוגדר'}`;
-            currentEndLocationDiv.innerHTML = `<span class="font-semibold">סיום:</span> ${endLocation ? endLocation.address : 'לא הוגדר'}`;
+            // Clear existing content
+            currentStartLocationDiv.textContent = '';
+            const startLabel = document.createElement('span');
+            startLabel.className = 'font-semibold';
+            startLabel.textContent = 'התחלה:';
+            currentStartLocationDiv.appendChild(startLabel);
+            currentStartLocationDiv.append(' ', startLocation ? startLocation.address : 'לא הוגדר');
+
+            currentEndLocationDiv.textContent = '';
+            const endLabel = document.createElement('span');
+            endLabel.className = 'font-semibold';
+            endLabel.textContent = 'סיום:';
+            currentEndLocationDiv.appendChild(endLabel);
+            currentEndLocationDiv.append(' ', endLocation ? endLocation.address : 'לא הוגדר');
         }
 
         // Event listener for setting start location
