@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>מארגן נסיעות אופטימלי</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* הגדרת גופן "Inter" */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+    <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-2xl">
+        <h1 class="text-2xl font-bold mb-4 text-center text-gray-800">מארגן נסיעות אופטימלי</h1>
+
+        <!-- הודעות מערכת - הועבר לראש העמוד -->
+        <div id="messageBox" class="mt-4 p-3 bg-yellow-100 border border-yellow-400 text-yellow-700 rounded-md hidden">
+            <!-- הודעות יוצגו כאן -->
+        </div>
+
+        <!-- נקודת התחלה -->
+        <div class="mb-4 p-3 bg-blue-50 rounded-md border border-blue-200">
+            <label for="startAddressInput" class="block text-blue-700 text-sm font-bold mb-2">נקודת התחלה:</label>
+            <div class="flex mb-2">
+                <input type="text" id="startAddressInput" placeholder="הזן כתובת התחלה"
+                       class="shadow appearance-none border rounded-l w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline flex-grow">
+                <button id="setStartLocationBtn"
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-r focus:outline-none focus:shadow-outline">
+                    הגדר
+                </button>
+            </div>
+            <div id="currentStartLocation" class="text-gray-700 text-sm">
+                <span class="font-semibold">התחלה:</span> לא הוגדר
+            </div>
+            <button id="clearStartLocationBtn" class="mt-2 text-xs text-red-500 hover:text-red-700 underline">נקה נקודת התחלה</button>
+        </div>
+
+        <!-- נקודת סיום -->
+        <div class="mb-4 p-3 bg-blue-50 rounded-md border border-blue-200">
+            <label for="endAddressInput" class="block text-blue-700 text-sm font-bold mb-2">נקודת סיום:</label>
+            <div class="flex mb-2">
+                <input type="text" id="endAddressInput" placeholder="הזן כתובת סיום"
+                       class="shadow appearance-none border rounded-l w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline flex-grow">
+                <button id="setEndLocationBtn"
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-r focus:outline-none focus:shadow-outline">
+                    הגדר
+                </button>
+            </div>
+            <div id="currentEndLocation" class="text-gray-700 text-sm">
+                <span class="font-semibold">סיום:</span> לא הוגדר
+            </div>
+            <button id="clearEndLocationBtn" class="mt-2 text-xs text-red-500 hover:text-red-700 underline">נקה נקודת סיום</button>
+        </div>
+
+        <!-- קלט מיקומים ביניים -->
+        <div class="mb-4">
+            <label for="intermediateAddressInput" class="block text-gray-700 text-sm font-bold mb-2">הזן מיקום ביניים:</label>
+            <div class="flex">
+                <input type="text" id="intermediateAddressInput" placeholder="לדוגמה: רחוב הרצל 1, תל אביב"
+                       class="shadow appearance-none border rounded-l w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline flex-grow">
+                <button id="addIntermediateLocationBtn"
+                        class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-r focus:outline-none focus:shadow-outline">
+                    הוסף
+                </button>
+            </div>
+        </div>
+
+        <!-- רשימת מיקומים ביניים -->
+        <div class="mb-4">
+            <h2 class="text-xl font-semibold mb-2 text-gray-800">מיקומי ביניים שנוספו:</h2>
+            <ul id="intermediateLocationsList" class="bg-gray-50 p-3 rounded-md border border-gray-200 min-h-[80px]">
+                <!-- מיקומים יתווספו כאן -->
+            </ul>
+        </div>
+
+        <!-- כפתור אופטימיזציה -->
+        <button id="optimizeRouteBtn"
+                class="w-full bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md focus:outline-none focus:shadow-outline mb-4">
+            אופטימיזציה של המסלול
+        </button>
+
+        <!-- מסלול אופטימלי -->
+        <div>
+            <h2 class="text-xl font-semibold mb-2 text-gray-800">מסלול מומלץ:</h2>
+            <ol id="optimizedRouteList" class="bg-gray-50 p-3 rounded-md border border-gray-200 min-h-[80px]">
+                <!-- המסלול האופטימלי יוצג כאן -->
+            </ol>
+        </div>
+
+        <!-- כפתור פתיחה במפות Google -->
+        <button id="openInGoogleMapsBtn"
+                class="w-full bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md focus:outline-none focus:shadow-outline mt-4 hidden">
+            פתח במפות Google
+        </button>
+
+        <!-- ייחוס (Attribution) ל-OpenStreetMap -->
+        <div class="text-xs text-gray-500 mt-4 text-center">
+            חיפוש כתובות באמצעות <a href="https://nominatim.org/" target="_blank" class="underline">Nominatim</a>.
+            ניתוב באמצעות <a href="http://project-osrm.org/" target="_blank" class="underline">OSRM</a>.
+        </div>
+    </div>
+
+    <script>
+        let intermediateLocations = []; // Array to store { address: string, lat: number, lng: number } objects for intermediate points
+        let startLocation = null; // { address: string, lat: number, lng: number } object for start location
+        let endLocation = null;   // { address: string, lat: number, lng: number } object for end location
+        let lastOptimizedRoute = []; // Stores the last optimized route for Google Maps export
+
+        // Get DOM element references
+        const startAddressInput = document.getElementById('startAddressInput');
+        const setStartLocationBtn = document.getElementById('setStartLocationBtn');
+        const currentStartLocationDiv = document.getElementById('currentStartLocation');
+        const clearStartLocationBtn = document.getElementById('clearStartLocationBtn');
+
+        const endAddressInput = document.getElementById('endAddressInput');
+        const setEndLocationBtn = document.getElementById('setEndLocationBtn');
+        const currentEndLocationDiv = document.getElementById('currentEndLocation');
+        const clearEndLocationBtn = document.getElementById('clearEndLocationBtn');
+
+        const intermediateAddressInput = document.getElementById('intermediateAddressInput');
+        const addIntermediateLocationBtn = document.getElementById('addIntermediateLocationBtn');
+        const intermediateLocationsList = document.getElementById('intermediateLocationsList');
+
+        const optimizeRouteBtn = document.getElementById('optimizeRouteBtn');
+        const optimizedRouteList = document.getElementById('optimizedRouteList');
+        const messageBox = document.getElementById('messageBox');
+        const openInGoogleMapsBtn = document.getElementById('openInGoogleMapsBtn');
+
+        // Maximum number of intermediate points for TSP (brute force)
+        const TSP_MAX_INTERMEDIATE_POINTS = 8; // 8! = 40,320 permutations, 9! = 362,880, 10! = 3,628,800. 8 is safer for browser performance.
+
+        /**
+         * Displays a message to the user in the message box.
+         * @param {string} message - The message to display.
+         * @param {'info' | 'error'} type - The type of message (determines styling).
+         */
+        function showMessage(message, type = 'info') {
+            messageBox.textContent = message;
+            messageBox.className = `mt-4 p-3 rounded-md ${type === 'error' ? 'bg-red-100 border-red-400 text-red-700' : 'bg-yellow-100 border-yellow-400 text-yellow-700'}`;
+            messageBox.classList.remove('hidden');
+            // Hide message after 5 seconds
+            setTimeout(() => {
+                messageBox.classList.add('hidden');
+            }, 5000);
+        }
+
+        /**
+         * Performs geocoding (address to coordinates) using Nominatim.
+         * @param {string} address - The address string.
+         * @returns {Promise<{ lat: number, lng: number, address: string } | null>} - Location data or null if not found.
+         */
+        async function geocodeAddress(address) {
+            const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(address)}`;
+            try {
+                const response = await fetch(url, {
+                    headers: { 'User-Agent': 'TravelOptimizerApp/1.0' } // User-Agent is mandatory for Nominatim
+                });
+                if (!response.ok) {
+                    throw new Error(`Nominatim geocoding failed with status: ${response.status}`);
+                }
+                const data = await response.json();
+                if (data && data.length > 0) {
+                    return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon), address: data[0].display_name };
+                }
+                return null;
+            } catch (error) {
+                console.error('Geocoding failed:', error);
+                showMessage('שגיאה בחיפוש כתובת. וודא שהכתובת נכונה.', 'error');
+                return null;
+            }
+        }
+
+        /**
+         * Adds an intermediate location to the list.
+         * @param {{ address: string, lat: number, lng: number }} locationData - The location data.
+         */
+        function addIntermediateLocation(locationData) {
+            // Check if the location already exists (by address or very close coordinates)
+            const isDuplicate = intermediateLocations.some(loc =>
+                loc.address === locationData.address ||
+                (Math.abs(loc.lat - locationData.lat) < 0.0001 && Math.abs(loc.lng - locationData.lng) < 0.0001)
+            );
+            const isStartOrEnd = (startLocation && startLocation.address === locationData.address) ||
+                                 (endLocation && endLocation.address === locationData.address);
+
+            if (isDuplicate || isStartOrEnd) {
+                showMessage('מיקום זה כבר נוסף (כביניים, התחלה או סיום).', 'info');
+                return;
+            }
+
+            intermediateLocations.push(locationData);
+            updateIntermediateLocationsList(); // Ensure this is called to update the list
+            clearRouteDisplay(); // Clear route if locations change
+        }
+
+        /**
+         * Updates the displayed list of intermediate locations.
+         */
+        function updateIntermediateLocationsList() {
+            intermediateLocationsList.innerHTML = ''; // Clear existing list
+            if (intermediateLocations.length === 0) {
+                intermediateLocationsList.innerHTML = '<li class="text-gray-500">עדיין לא הוספת מיקומי ביניים.</li>';
+            } else {
+                intermediateLocations.forEach((location, index) => {
+                    const listItem = document.createElement('li');
+                    listItem.className = 'flex justify-between items-center py-1 px-2 border-b border-gray-200 last:border-b-0';
+                    listItem.innerHTML = `
+                        <span>${index + 1}. ${location.address}</span>
+                        <button data-index="${index}" class="remove-intermediate-btn text-red-500 hover:text-red-700 text-sm px-2 py-1 rounded-md">הסר</button>
+                    `;
+                    intermediateLocationsList.appendChild(listItem);
+                });
+            }
+        }
+
+        /**
+         * Updates the display of fixed start and end locations.
+         */
+        function updateFixedLocationDisplays() {
+            currentStartLocationDiv.innerHTML = `<span class="font-semibold">התחלה:</span> ${startLocation ? startLocation.address : 'לא הוגדר'}`;
+            currentEndLocationDiv.innerHTML = `<span class="font-semibold">סיום:</span> ${endLocation ? endLocation.address : 'לא הוגדר'}`;
+        }
+
+        // Event listener for setting start location
+        setStartLocationBtn.addEventListener('click', async () => {
+            const address = startAddressInput.value.trim();
+            if (address) {
+                showMessage('מחפש כתובת לנקודת התחלה...', 'info');
+                const locData = await geocodeAddress(address);
+                if (locData) {
+                    startLocation = locData;
+                    updateFixedLocationDisplays(); // Update the text display
+                    startAddressInput.value = '';
+                    showMessage('נקודת התחלה הוגדרה!', 'info');
+                    clearRouteDisplay(); // Clear route if locations change
+                } else {
+                    showMessage('לא נמצאה כתובת עבור נקודת ההתחלה.', 'error');
+                }
+            } else {
+                showMessage('אנא הזן כתובת לנקודת ההתחלה.', 'error');
+            }
+        });
+
+        // Event listener for clearing start location
+        clearStartLocationBtn.addEventListener('click', () => {
+            startLocation = null;
+            updateFixedLocationDisplays(); // Update the text display
+            showMessage('נקודת התחלה נוקתה.', 'info');
+            clearRouteDisplay();
+        });
+
+        // Event listener for setting end location
+        setEndLocationBtn.addEventListener('click', async () => {
+            const address = endAddressInput.value.trim();
+            if (address) {
+                showMessage('מחפש כתובת לנקודת סיום...', 'info');
+                const locData = await geocodeAddress(address);
+                if (locData) {
+                    endLocation = locData;
+                    updateFixedLocationDisplays(); // Update the text display
+                    endAddressInput.value = '';
+                    showMessage('נקודת סיום הוגדרה!', 'info');
+                    clearRouteDisplay(); // Clear route if locations change
+                } else {
+                    showMessage('לא נמצאה כתובת עבור נקודת הסיום.', 'error');
+                }
+            } else {
+                showMessage('אנא הזן כתובת לנקודת הסיום.', 'error');
+            }
+        });
+
+        // Event listener for clearing end location
+        clearEndLocationBtn.addEventListener('click', () => {
+            endLocation = null;
+            updateFixedLocationDisplays(); // Update the text display
+            showMessage('נקודת סיום נוקתה.', 'info');
+            clearRouteDisplay();
+        });
+
+        // Event listener for adding intermediate location from search input
+        addIntermediateLocationBtn.addEventListener('click', async () => {
+            const address = intermediateAddressInput.value.trim();
+            if (address) {
+                showMessage('מחפש כתובת למיקום ביניים...', 'info');
+                const locData = await geocodeAddress(address);
+                if (locData) {
+                    addIntermediateLocation(locData);
+                    intermediateAddressInput.value = ''; // Clear input field
+                    showMessage('מיקום ביניים נוסף!', 'info');
+                } else {
+                    showMessage('לא נמצאה כתובת עבור החיפוש.', 'error');
+                }
+            } else {
+                showMessage('אנא הזן כתובת לחיפוש.', 'error');
+            }
+        });
+
+        // Event listener for removing an intermediate location from the list
+        intermediateLocationsList.addEventListener('click', (event) => {
+            if (event.target.classList.contains('remove-intermediate-btn')) {
+                const indexToRemove = parseInt(event.target.dataset.index);
+                intermediateLocations.splice(indexToRemove, 1); // Remove location from array
+                updateIntermediateLocationsList(); // Update the display
+                clearRouteDisplay(); // Clear route if locations change
+            }
+        });
+
+        /**
+         * Clears the displayed route and hides the "Open in Google Maps" button.
+         */
+        function clearRouteDisplay() {
+            optimizedRouteList.innerHTML = '<li class="text-gray-500">המסלול נוקה.</li>';
+            openInGoogleMapsBtn.classList.add('hidden'); // Hide the button
+            lastOptimizedRoute = []; // Clear the stored route
+        }
+
+        /**
+         * Fetches a duration matrix from OSRM Table API.
+         * @param {Array<{ lat: number, lng: number }>} coords - Array of coordinate objects.
+         * @returns {Promise<Array<Array<number>> | null>} - Matrix of durations in seconds or null on error.
+         */
+        async function getOSRMTable(coords) {
+            // OSRM Table API expects coordinates in the format: lng,lat;lng,lat...
+            const coordinatesString = coords.map(loc => `${loc.lng},${loc.lat}`).join(';');
+            const url = `https://router.project-osrm.org/table/v1/driving/${coordinatesString}?sources=all&destinations=all`;
+
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`OSRM Table API error: ${response.statusText} (Status: ${response.status})`);
+                }
+                const data = await response.json();
+                // data.durations contains a matrix of travel times in seconds
+                return data.durations;
+            } catch (error) {
+                console.error('Error fetching OSRM table:', error);
+                showMessage('שגיאה בחישוב זמני נסיעה. נסה שוב מאוחר יותר או בדוק את חיבור האינטרנט.', 'error');
+                return null;
+            }
+        }
+
+        /**
+         * Helper function to generate all permutations of an array.
+         * @param {Array<any>} arr - The array to permute.
+         * @returns {Array<Array<any>>} - An array of all permutations.
+         */
+        function generatePermutations(arr) {
+            const result = [];
+            function permute(current, remaining) {
+                if (remaining.length === 0) {
+                    result.push(current);
+                    return;
+                }
+                for (let i = 0; i < remaining.length; i++) {
+                    const next = remaining[i];
+                    const newRemaining = remaining.slice(0, i).concat(remaining.slice(i + 1));
+                    permute(current.concat(next), newRemaining);
+                }
+            }
+            permute([], arr);
+            return result;
+        }
+
+        /**
+         * Solves the Traveling Salesperson Problem (TSP) for a small number of intermediate points
+         * using a brute-force permutation approach.
+         * @param {Array<{ address: string, lat: number, lng: number }>} intermediateLocs - Intermediate locations.
+         * @param {Array<Array<number>>} durationsMatrix - Matrix of travel durations between all points.
+         * @param {{ address: string, lat: number, lng: number } | null} startLoc - Fixed start location.
+         * @param {{ address: string, lat: number, lng: number } | null} endLoc - Fixed end location.
+         * @param {Array<{ address: string, lat: number, lng: number }>} allPointsForMatrix - All points used to build the durationsMatrix.
+         * @returns {Array<{ address: string, lat: number, lng: number }>} - The optimal route.
+         */
+        function solveTSP(intermediateLocs, durationsMatrix, startLoc, endLoc, allPointsForMatrix) {
+            if (intermediateLocs.length === 0) {
+                const route = [];
+                if (startLoc) route.push(startLoc);
+                if (endLoc && (route.length === 0 || route[route.length - 1] !== endLoc)) route.push(endLoc);
+                return route;
+            }
+
+            const permutations = generatePermutations(intermediateLocs);
+            let bestRoute = [];
+            let minTotalDuration = Infinity;
+
+            for (const perm of permutations) {
+                let currentTotalDuration = 0;
+                let currentPath = [];
+
+                // Add start location if it exists
+                if (startLoc) {
+                    currentPath.push(startLoc);
+                }
+
+                // Add intermediate points from permutation
+                currentPath = currentPath.concat(perm);
+
+                // Add end location if it exists
+                if (endLoc) {
+                    currentPath.push(endLoc);
+                }
+
+                // Calculate total duration for this path
+                for (let i = 0; i < currentPath.length - 1; i++) {
+                    const fromPoint = currentPath[i];
+                    const toPoint = currentPath[i + 1];
+
+                    const fromIdx = allPointsForMatrix.indexOf(fromPoint);
+                    const toIdx = allPointsForMatrix.indexOf(toPoint);
+
+                    if (fromIdx === -1 || toIdx === -1 || !durationsMatrix[fromIdx] || durationsMatrix[fromIdx][toIdx] === undefined) {
+                        console.warn(`Missing duration for path segment: ${fromPoint.address} to ${toPoint.address}. Setting path duration to Infinity.`);
+                        currentTotalDuration = Infinity; // Mark as invalid path
+                        break;
+                    }
+                    currentTotalDuration += durationsMatrix[fromIdx][toIdx];
+                }
+
+                if (currentTotalDuration < minTotalDuration) {
+                    minTotalDuration = currentTotalDuration;
+                    bestRoute = currentPath;
+                }
+            }
+            return bestRoute;
+        }
+
+        /**
+         * Optimizes the route using a simple "Nearest Neighbor" algorithm,
+         * respecting fixed start and end points.
+         * @param {Array<{ address: string, lat: number, lng: number }>} intermediateLocs - Intermediate locations.
+         * @param {Array<Array<number>>} durationsMatrix - Matrix of travel durations between all points.
+         * @param {{ address: string, lat: number, lng: number } | null} startLoc - Fixed start location.
+         * @param {{ address: string, lat: number, lng: number } | null} endLoc - Fixed end location.
+         * @param {Array<{ address: string, lat: number, lng: number }>} allPointsForMatrix - All points used to build the durationsMatrix.
+         * @returns {Array<{ address: string, lat: number, lng: number }>} - The optimized route.
+         */
+        function optimizeRouteNearestNeighbor(intermediateLocs, durationsMatrix, startLoc, endLoc, allPointsForMatrix) {
+            let currentRoute = [];
+            // Create a copy of intermediate indices to track unvisited ones
+            let unvisitedIntermediateIndices = Array.from({ length: intermediateLocs.length }, (_, i) => i);
+
+            let currentPoint = null;
+            let currentPointMatrixIndex = -1;
+
+            // 1. Start from the fixed start location if it exists
+            if (startLoc) {
+                currentRoute.push(startLoc);
+                currentPoint = startLoc;
+                currentPointMatrixIndex = allPointsForMatrix.indexOf(startLoc);
+            } else if (intermediateLocs.length > 0) {
+                // If no fixed start, pick the first intermediate point as the starting point for optimization
+                currentPoint = intermediateLocs[0];
+                currentRoute.push(currentPoint);
+                currentPointMatrixIndex = allPointsForMatrix.indexOf(currentPoint);
+                // Remove this point from unvisited intermediates
+                unvisitedIntermediateIndices = unvisitedIntermediateIndices.filter(idx => intermediateLocs[idx] !== currentPoint);
+            } else {
+                // No intermediate points. Just handle start/end.
+                if (endLoc && (currentRoute.length === 0 || currentRoute[currentRoute.length - 1] !== endLoc)) {
+                    currentRoute.push(endLoc);
+                }
+                return currentRoute;
+            }
+
+            // 2. Optimize intermediate points using "Nearest Neighbor" algorithm
+            while (unvisitedIntermediateIndices.length > 0) {
+                let nearestIntermediateIdx = -1;
+                let minDuration = Infinity;
+
+                for (let i = 0; i < unvisitedIntermediateIndices.length; i++) {
+                    const nextIntermediatePoint = intermediateLocs[unvisitedIntermediateIndices[i]];
+                    const nextIntermediateMatrixIndex = allPointsForMatrix.indexOf(nextIntermediatePoint);
+
+                    // Ensure indices are valid for matrix lookup
+                    if (currentPointMatrixIndex === -1 || nextIntermediateMatrixIndex === -1 ||
+                        !durationsMatrix[currentPointMatrixIndex] || durationsMatrix[currentPointMatrixIndex][nextIntermediateMatrixIndex] === undefined) {
+                        console.warn("Invalid index or undefined duration in durationsMatrix lookup. Skipping this pair.");
+                        continue;
+                    }
+
+                    const duration = durationsMatrix[currentPointMatrixIndex][nextIntermediateMatrixIndex];
+
+                    if (duration < minDuration) {
+                        minDuration = duration;
+                        nearestIntermediateIdx = unvisitedIntermediateIndices[i];
+                    }
+                }
+
+                if (nearestIntermediateIdx !== -1) {
+                    const nextPoint = intermediateLocs[nearestIntermediateIdx];
+                    currentRoute.push(nextPoint);
+                    currentPoint = nextPoint;
+                    currentPointMatrixIndex = allPointsForMatrix.indexOf(currentPoint);
+                    unvisitedIntermediateIndices = unvisitedIntermediateIndices.filter(idx => idx !== nearestIntermediateIdx);
+                } else {
+                    // This case should ideally not happen if unvisitedIntermediateIndices is not empty
+                    console.error("Nearest intermediate not found, breaking loop. This might indicate an issue with duration matrix or unvisited points.");
+                    break;
+                }
+            }
+
+            // 3. Add the fixed end location if it exists and hasn't been included yet
+            if (endLoc && (currentRoute.length === 0 || currentRoute[currentRoute.length - 1] !== endLoc)) {
+                currentRoute.push(endLoc);
+            }
+
+            return currentRoute;
+        }
+
+        /**
+         * Constructs and opens a Google Maps URL for the optimized route.
+         * Uses the Google Maps URL scheme for directions.
+         */
+        function openInGoogleMaps() {
+            if (lastOptimizedRoute.length < 2) {
+                showMessage('אין מסלול מחושב לפתיחה במפות Google.', 'error');
+                return;
+            }
+
+            let origin = '';
+            let destination = '';
+            let waypoints = [];
+
+            // Determine origin, destination, and waypoints based on the optimized route
+            if (lastOptimizedRoute.length === 2) {
+                origin = `${lastOptimizedRoute[0].lat},${lastOptimizedRoute[0].lng}`;
+                destination = `${lastOptimizedRoute[1].lat},${lastOptimizedRoute[1].lng}`;
+            } else {
+                origin = `${lastOptimizedRoute[0].lat},${lastOptimizedRoute[0].lng}`;
+                destination = `${lastOptimizedRoute[lastOptimizedRoute.length - 1].lat},${lastOptimizedRoute[lastOptimizedRoute.length - 1].lng}`;
+                // All points between origin and destination are waypoints
+                waypoints = lastOptimizedRoute.slice(1, -1).map(loc => `${loc.lat},${loc.lng}`);
+            }
+
+            let googleMapsUrl = `https://www.google.com/maps/dir/?api=1`;
+            googleMapsUrl += `&origin=${encodeURIComponent(origin)}`;
+            googleMapsUrl += `&destination=${encodeURIComponent(destination)}`;
+            if (waypoints.length > 0) {
+                googleMapsUrl += `&waypoints=${encodeURIComponent(waypoints.join('|'))}`;
+            }
+            googleMapsUrl += `&travelmode=driving`; // Assuming driving mode
+
+            window.open(googleMapsUrl, '_blank');
+        }
+
+
+        // Event listener for the "Optimize Route" button
+        optimizeRouteBtn.addEventListener('click', async () => {
+            let allPointsForOSRM = [];
+            // Add start location if set
+            if (startLocation) allPointsForOSRM.push(startLocation);
+            // Add all intermediate locations
+            allPointsForOSRM = allPointsForOSRM.concat(intermediateLocations);
+            // Add end location if set
+            if (endLocation) allPointsForOSRM.push(endLocation);
+
+            if (allPointsForOSRM.length < 2) {
+                showMessage('אנא הוסף לפחות שתי נקודות (התחלה, סיום או ביניים) כדי לבצע אופטימיזציה.', 'error');
+                optimizedRouteList.innerHTML = '<li class="text-gray-500">הוסף לפחות שתי נקודות.</li>';
+                clearRouteDisplay();
+                return;
+            }
+
+            // Determine which optimization algorithm to use
+            let optimizedRoute;
+            if (intermediateLocations.length <= TSP_MAX_INTERMEDIATE_POINTS) {
+                showMessage('מחשב מסלול אופטימלי (TSP - מדויק עבור מספר קטן של נקודות)...', 'info');
+            } else {
+                showMessage('מחשב מסלול אופטימלי (שכן קרוב - מהיר עבור מספר רב של נקודות)...', 'info');
+            }
+            optimizedRouteList.innerHTML = '<li class="text-gray-500">בטעינה...</li>';
+            openInGoogleMapsBtn.classList.add('hidden'); // Hide button during calculation
+
+            try {
+                // Get the full duration matrix from OSRM for all points
+                const durationsMatrix = await getOSRMTable(allPointsForOSRM);
+
+                if (!durationsMatrix) {
+                    optimizedRouteList.innerHTML = '<li class="text-gray-500">שגיאה בחישוב המסלול.</li>';
+                    return;
+                }
+
+                // Call the appropriate optimization function
+                if (intermediateLocations.length <= TSP_MAX_INTERMEDIATE_POINTS) {
+                    optimizedRoute = solveTSP(intermediateLocations, durationsMatrix, startLocation, endLocation, allPointsForOSRM);
+                } else {
+                    optimizedRoute = optimizeRouteNearestNeighbor(intermediateLocations, durationsMatrix, startLocation, endLocation, allPointsForOSRM);
+                }
+
+                optimizedRouteList.innerHTML = ''; // Clear existing list
+                optimizedRoute.forEach((location, index) => {
+                    const listItem = document.createElement('li');
+                    listItem.className = 'py-1 px-2 border-b border-gray-200 last:border-b-0';
+                    listItem.textContent = `${index + 1}. ${location.address}`;
+                    optimizedRouteList.appendChild(listItem);
+                });
+
+                lastOptimizedRoute = optimizedRoute; // Store the optimized route
+                openInGoogleMapsBtn.classList.remove('hidden'); // Show the button
+
+                showMessage('המסלול חושב בהצלחה!', 'info');
+
+            } catch (error) {
+                console.error('Optimization process failed:', error);
+                showMessage('שגיאה באופטימיזציה של המסלול. וודא שיש חיבור אינטרנט תקין ושהכתובות חוקיות.', 'error');
+                optimizedRouteList.innerHTML = '<li class="text-gray-500">שגיאה בחישוב המסלול.</li>';
+            }
+        });
+
+        // Event listener for the "Open in Google Maps" button
+        openInGoogleMapsBtn.addEventListener('click', openInGoogleMaps);
+
+        // Initial updates on page load
+        updateIntermediateLocationsList();
+        updateFixedLocationDisplays();
+        clearRouteDisplay(); // Ensure the "Open in Google Maps" button is hidden initially
+    </script>
+</body>
+</html>
+
