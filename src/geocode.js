@@ -9,6 +9,8 @@
     root.geocodeAddress = exports.geocodeAddress;
   }
 }(typeof self !== 'undefined' ? self : this, function(){
+  const suggestionData = {};
+
   function detectLanguage(text) {
     return /[\u0590-\u05FF]/.test(text) ? 'he' : 'en';
   }
@@ -57,19 +59,23 @@
     const q = inputElem.value.trim();
     if (q.length < 2) {
       listElem.innerHTML = '';
+      suggestionData[inputElem.id] = [];
       return;
     }
     const lang = detectLanguage(q);
     const suggestions = await fetchAddressSuggestions(q, lang);
+    suggestionData[inputElem.id] = suggestions;
     listElem.innerHTML = suggestions
-      .map(s => `<option value="${s.full}" label="${s.short}"></option>`)
+      .map(s => `<option value="${s.short}"></option>`)
       .join('');
-    if (suggestions.length > 0) {
-      const val = inputElem.value;
-      inputElem.value = '';
-      inputElem.value = val;
-    }
   }
 
-  return { detectLanguage, fetchAddressSuggestions, geocodeAddress, updateSuggestions };
+  function getFullAddress(inputElem) {
+    const val = inputElem.value.trim();
+    const suggs = suggestionData[inputElem.id] || [];
+    const match = suggs.find(s => s.short === val);
+    return match ? match.full : val;
+  }
+
+  return { detectLanguage, fetchAddressSuggestions, geocodeAddress, updateSuggestions, getFullAddress };
 }));
