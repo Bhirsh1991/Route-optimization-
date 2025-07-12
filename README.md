@@ -17,10 +17,17 @@ The application consists of a single HTML file that uses vanilla JavaScript and 
 
 ## CI
 
-Pull requests and pushes to `main` run a small test script via GitHub Actions. The workflow runs `test.sh` which checks that `index.html` exists and contains a `<title>` tag.
+Pull requests and pushes to `main` trigger a GitHub Actions workflow that performs several checks:
 
-You can run the same test locally before opening a pull request:
+1. **Install dependencies** – Node.js is set up and `npm install` runs to fetch test tooling.
+2. **Syntax check** – each JavaScript file is parsed with `node --check` to catch syntax errors early.
+3. **Unit tests** – `npm test` executes the Jest test suite under `tests/`.
+4. **Basic file check** – the existing `test.sh` script verifies that `index.html` is present and includes a `<title>` tag.
+
+You can run these checks locally before opening a pull request:
 
 ```bash
+npm install
+npm test
 bash test.sh
 ```

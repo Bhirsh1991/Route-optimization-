@@ -10,5 +10,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - name: Install dependencies
+        run: npm install
+      - name: Check JS syntax
+        run: |
+          for f in $(git ls-files '*.js'); do
+            node --check "$f";
+          done
+      - name: Run unit tests
+        run: npm test
       - name: Run test script
         run: bash test.sh
