@@ -229,7 +229,8 @@
             const address = startAddressInput.value.trim();
             if (address) {
                 showMessage('מחפש כתובת לנקודת התחלה...', 'info');
-                const locData = await geocodeAddress(address, detectLanguage(address));
+                const fullAddress = getFullAddress(startAddressInput);
+                const locData = await geocodeAddress(fullAddress, detectLanguage(fullAddress));
                 if (locData) {
                     startLocation = locData;
                     updateFixedLocationDisplays(); // Update the text display
@@ -257,7 +258,8 @@
             const address = endAddressInput.value.trim();
             if (address) {
                 showMessage('מחפש כתובת לנקודת סיום...', 'info');
-                const locData = await geocodeAddress(address, detectLanguage(address));
+                const fullAddress = getFullAddress(endAddressInput);
+                const locData = await geocodeAddress(fullAddress, detectLanguage(fullAddress));
                 if (locData) {
                     endLocation = locData;
                     updateFixedLocationDisplays(); // Update the text display
@@ -285,7 +287,8 @@
             const address = intermediateAddressInput.value.trim();
             if (address) {
                 showMessage('מחפש כתובת למיקום ביניים...', 'info');
-                const locData = await geocodeAddress(address, detectLanguage(address));
+                const fullAddress = getFullAddress(intermediateAddressInput);
+                const locData = await geocodeAddress(fullAddress, detectLanguage(fullAddress));
                 if (locData) {
                     addIntermediateLocation(locData);
                     intermediateAddressInput.value = ''; // Clear input field
