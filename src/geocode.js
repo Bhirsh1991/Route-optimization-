@@ -13,6 +13,10 @@
     return /[\u0590-\u05FF]/.test(text) ? 'he' : 'en';
   }
 
+  function shortenAddress(displayName) {
+    return displayName.split(',').slice(0, 3).join(',').trim();
+  }
+
   async function fetchAddressSuggestions(query, lang) {
     const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&accept-language=${lang}&q=${encodeURIComponent(query)}`;
     try {
@@ -21,7 +25,10 @@
         throw new Error('Suggestion fetch failed');
       }
       const data = await response.json();
-      return data.map(item => item.display_name);
+      return data.map(item => ({
+        full: item.display_name,
+        short: shortenAddress(item.display_name)
+      }));
     } catch (e) {
       console.error('Autocomplete error:', e);
       return [];
@@ -54,7 +61,14 @@
     }
     const lang = detectLanguage(q);
     const suggestions = await fetchAddressSuggestions(q, lang);
-    listElem.innerHTML = suggestions.map(s => `<option value="${s}"></option>`).join('');
+    listElem.innerHTML = suggestions
+      .map(s => `<option value="${s.full}" label="${s.short}"></option>`)
+      .join('');
+    if (suggestions.length > 0) {
+      const val = inputElem.value;
+      inputElem.value = '';
+      inputElem.value = val;
+    }
   }
 
   return { detectLanguage, fetchAddressSuggestions, geocodeAddress, updateSuggestions };
