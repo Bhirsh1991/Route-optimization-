@@ -22,6 +22,20 @@
     return displayName.split(',').slice(0, 3).join(',').trim();
   }
 
+  function buildGeocodeServiceMessage(status) {
+    if (status === 403) {
+      return 'שירות חיפוש הכתובות חסם את הבקשה. נסה שוב מאוחר יותר.';
+    }
+    if (status === 429) {
+      return 'בוצעו יותר מדי בקשות לחיפוש כתובות. נסה שוב בעוד כמה דקות.';
+    }
+    return `שירות חיפוש הכתובות החזיר שגיאה (סטטוס ${status}). נסה שוב מאוחר יותר.`;
+  }
+
+  function buildNetworkMessage() {
+    return 'לא ניתן להגיע לשירות חיפוש הכתובות. בדוק את החיבור לאינטרנט ונסה שוב.';
+  }
+
   async function fetchAddressSuggestions(query, lang) {
     const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&accept-language=${lang}&q=${encodeURIComponent(query)}`;
     try {
@@ -45,7 +59,7 @@
     try {
       const response = await fetch(url);
       if (!response.ok) {
-        throw new Error(`Nominatim geocoding failed with status: ${response.status}`);
+        throw new Error(buildGeocodeServiceMessage(response.status));
       }
       const data = await response.json();
       if (data && data.length > 0) {
@@ -60,7 +74,12 @@
       return null;
     } catch (error) {
       console.error('Geocoding failed:', error);
-      return null;
+      if (error instanceof Error) {
+        if (error.message.includes('שירות חיפוש הכתובות')) {
+          throw error;
+        }
+      }
+      throw new Error(buildNetworkMessage());
     }
   }
 
