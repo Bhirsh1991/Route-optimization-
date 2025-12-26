@@ -7,6 +7,7 @@
     root.fetchAddressSuggestions = exports.fetchAddressSuggestions;
     root.updateSuggestions = exports.updateSuggestions;
     root.geocodeAddress = exports.geocodeAddress;
+    root.getFullAddress = exports.getFullAddress;
   }
 }(typeof self !== 'undefined' ? self : this, function(){
   const suggestionData = {};
