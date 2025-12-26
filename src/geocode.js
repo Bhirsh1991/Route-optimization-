@@ -18,8 +18,19 @@
     return /[\u0590-\u05FF]/.test(text) ? 'he' : 'en';
   }
 
+  function normalizeAddressParts(parts) {
+    const cleaned = parts.map(part => part.trim()).filter(Boolean);
+    if (cleaned.length > 1 && /^[0-9]+[A-Za-z\u0590-\u05FF-]*$/.test(cleaned[0])) {
+      const houseNumber = cleaned[0];
+      const streetName = cleaned[1];
+      cleaned.splice(0, 2, `${streetName} ${houseNumber}`);
+    }
+    return cleaned;
+  }
+
   function shortenAddress(displayName) {
-    return displayName.split(',').slice(0, 3).join(',').trim();
+    const parts = normalizeAddressParts(displayName.split(','));
+    return parts.slice(0, 3).join(', ').trim();
   }
 
   function buildGeocodeServiceMessage(status) {
