@@ -8,6 +8,7 @@
     root.updateSuggestions = exports.updateSuggestions;
     root.geocodeAddress = exports.geocodeAddress;
     root.getFullAddress = exports.getFullAddress;
+    root.stripHouseNumber = exports.stripHouseNumber;
   }
 }(typeof self !== 'undefined' ? self : this, function(){
   const suggestionData = {};
@@ -45,6 +46,26 @@
 
   function buildNetworkMessage() {
     return 'לא ניתן להגיע לשירות חיפוש הכתובות. בדוק את החיבור לאינטרנט ונסה שוב.';
+  }
+
+  function stripHouseNumber(address) {
+    const parts = address.split(',');
+    if (parts.length === 0) {
+      return '';
+    }
+    const originalFirst = parts[0];
+    let firstPart = originalFirst.trim();
+    if (!/\d/.test(firstPart)) {
+      return '';
+    }
+    firstPart = firstPart.replace(/^\s*\d+[A-Za-z\u0590-\u05FF-]*\s+/, '');
+    firstPart = firstPart.replace(/\s+\d+[A-Za-z\u0590-\u05FF-]*\s*$/, '');
+    const changed = firstPart !== originalFirst.trim();
+    if (!changed || firstPart.length === 0) {
+      return '';
+    }
+    parts[0] = firstPart;
+    return parts.map(part => part.trim()).filter(Boolean).join(', ');
   }
 
   async function fetchAddressSuggestions(query, lang) {
@@ -125,5 +146,5 @@
     return match ? match.full : val;
   }
 
-  return { detectLanguage, fetchAddressSuggestions, geocodeAddress, updateSuggestions, getFullAddress, shortenAddress };
+  return { detectLanguage, fetchAddressSuggestions, geocodeAddress, updateSuggestions, getFullAddress, shortenAddress, stripHouseNumber };
 }));
