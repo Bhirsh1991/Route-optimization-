@@ -7,124 +7,220 @@
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* הגדרת גופן "Inter" */
         body {
             font-family: 'Inter', sans-serif;
         }
+
+        .step-card {
+            border: 1px solid #e2e8f0;
+        }
+
+        .step-card[data-complete="true"] .step-indicator {
+            background: #dcfce7;
+            color: #166534;
+            border-color: #86efac;
+        }
+
+        .step-card[data-complete="true"] .step-title {
+            color: #0f172a;
+        }
+
+        .step-card[data-active="true"] {
+            box-shadow: 0 12px 30px -25px rgba(15, 23, 42, 0.4);
+        }
+
+        .chip {
+            user-select: none;
+        }
+
+        .chip.dragging {
+            opacity: 0.6;
+        }
+
+        .save-success {
+            animation: pulse-success 1.4s ease;
+        }
+
+        @keyframes pulse-success {
+            0% {
+                transform: scale(0.97);
+                opacity: 0.4;
+            }
+            40% {
+                transform: scale(1.02);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
     </style>
 </head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
-    <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-2xl">
-        <div class="flex flex-col items-center mb-4">
+<body class="bg-slate-50 flex items-center justify-center min-h-screen p-4">
+    <div class="bg-white p-6 sm:p-8 rounded-2xl shadow-xl w-full max-w-3xl">
+        <div class="flex flex-col items-center mb-6 text-center">
             <img src="https://github.com/Bhirsh1991/Route-optimization-/blob/main/appLogo.png?raw=true" alt="לוגו האפליקציה" class="w-16 h-16 rounded-full object-cover shadow-sm">
-            <h1 class="text-2xl font-bold mt-3 text-center text-gray-800">מארגן נסיעות אופטימלי</h1>
-            <p class="text-sm text-gray-500 mt-1">מסלול חכם מהרגע הראשון</p>
+            <h1 class="text-2xl sm:text-3xl font-bold mt-4 text-slate-900">מארגן נסיעות אופטימלי</h1>
+            <p class="text-sm text-slate-500 mt-1">בונים מסלול חכם בצעדים פשוטים</p>
         </div>
 
-        <!-- הודעות מערכת - הועבר לראש העמוד -->
-        <div id="messageBox" class="mt-4 p-3 bg-yellow-100 border border-yellow-400 text-yellow-700 rounded-md hidden">
-            <!-- הודעות יוצגו כאן -->
+        <div id="messageBox" class="mt-4 p-3 rounded-xl hidden" role="status"></div>
+
+        <div class="space-y-4">
+            <section class="step-card rounded-2xl bg-white" data-step="1" data-active="true" data-complete="false">
+                <button type="button" class="w-full flex items-center justify-between p-4 sm:p-5" data-step-toggle>
+                    <div class="flex items-center gap-3">
+                        <span class="step-indicator w-9 h-9 rounded-full border border-slate-200 bg-slate-100 flex items-center justify-center text-slate-500 font-semibold">1</span>
+                        <div>
+                            <p class="step-title text-lg font-semibold text-slate-700">נקודת התחלה</p>
+                            <p class="text-sm text-slate-400">בחר נקודת יציאה למסלול</p>
+                        </div>
+                    </div>
+                    <span id="startStepStatus" class="text-sm text-slate-500">⏳ עדיין לא נבחרה</span>
+                </button>
+                <div class="step-body px-4 pb-5 sm:px-5">
+                    <div class="bg-slate-50 rounded-xl p-4 sm:p-5">
+                        <label for="startAddressInput" class="block text-sm font-medium text-slate-700 mb-3">כתובת התחלה</label>
+                        <div class="flex flex-col sm:flex-row gap-3">
+                            <input type="text" id="startAddressInput" list="startSuggestions" placeholder="הזן כתובת או מקום"
+                                   class="shadow-sm border border-slate-200 rounded-xl w-full py-2.5 px-4 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                            <datalist id="startSuggestions"></datalist>
+                            <button id="setStartLocationBtn"
+                                    class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-5 rounded-xl whitespace-nowrap">
+                                📍 בחר נקודת התחלה
+                            </button>
+                        </div>
+                        <div id="currentStartLocation" class="mt-3 text-sm text-slate-600"></div>
+                        <button id="clearStartLocationBtn" class="mt-3 text-xs text-slate-400 hover:text-slate-600 underline">נקה בחירה</button>
+                    </div>
+                </div>
+            </section>
+
+            <section class="step-card rounded-2xl bg-white" data-step="2" data-active="false" data-complete="false">
+                <button type="button" class="w-full flex items-center justify-between p-4 sm:p-5" data-step-toggle>
+                    <div class="flex items-center gap-3">
+                        <span class="step-indicator w-9 h-9 rounded-full border border-slate-200 bg-slate-100 flex items-center justify-center text-slate-500 font-semibold">2</span>
+                        <div>
+                            <p class="step-title text-lg font-semibold text-slate-700">נקודת סיום</p>
+                            <p class="text-sm text-slate-400">בחר יעד למסלול</p>
+                        </div>
+                    </div>
+                    <span id="endStepStatus" class="text-sm text-slate-500">⏳ עדיין לא נבחרה</span>
+                </button>
+                <div class="step-body hidden px-4 pb-5 sm:px-5">
+                    <div class="bg-slate-50 rounded-xl p-4 sm:p-5">
+                        <label for="endAddressInput" class="block text-sm font-medium text-slate-700 mb-3">כתובת סיום</label>
+                        <div class="flex flex-col sm:flex-row gap-3">
+                            <input type="text" id="endAddressInput" list="endSuggestions" placeholder="הזן כתובת או מקום"
+                                   class="shadow-sm border border-slate-200 rounded-xl w-full py-2.5 px-4 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                            <datalist id="endSuggestions"></datalist>
+                            <button id="setEndLocationBtn"
+                                    class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-5 rounded-xl whitespace-nowrap">
+                                📍 בחר נקודת סיום
+                            </button>
+                        </div>
+                        <div id="currentEndLocation" class="mt-3 text-sm text-slate-600"></div>
+                        <button id="clearEndLocationBtn" class="mt-3 text-xs text-slate-400 hover:text-slate-600 underline">נקה בחירה</button>
+                    </div>
+                </div>
+            </section>
+
+            <section class="step-card rounded-2xl bg-white" data-step="3" data-active="false" data-complete="false">
+                <button type="button" class="w-full flex items-center justify-between p-4 sm:p-5" data-step-toggle>
+                    <div class="flex items-center gap-3">
+                        <span class="step-indicator w-9 h-9 rounded-full border border-slate-200 bg-slate-100 flex items-center justify-center text-slate-500 font-semibold">3</span>
+                        <div>
+                            <p class="step-title text-lg font-semibold text-slate-700">עצירות ביניים</p>
+                            <p class="text-sm text-slate-400">אופציונלי · הוסף נקודות בדרך</p>
+                        </div>
+                    </div>
+                    <span id="intermediateStepStatus" class="text-sm text-slate-500">➕ הוספה חופשית</span>
+                </button>
+                <div class="step-body hidden px-4 pb-5 sm:px-5">
+                    <div class="bg-slate-50 rounded-xl p-4 sm:p-5 space-y-4">
+                        <div>
+                            <label for="intermediateAddressInput" class="block text-sm font-medium text-slate-700 mb-3">הוסף עצירת ביניים</label>
+                            <div class="flex flex-col sm:flex-row gap-3">
+                                <input type="text" id="intermediateAddressInput" list="intermediateSuggestions" placeholder="לדוגמה: רחוב הרצל 1, תל אביב"
+                                       class="shadow-sm border border-slate-200 rounded-xl w-full py-2.5 px-4 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                                <datalist id="intermediateSuggestions"></datalist>
+                                <button id="addIntermediateLocationBtn"
+                                        class="bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 px-5 rounded-xl whitespace-nowrap">
+                                    ➕ הוסף עצירה
+                                </button>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex items-center justify-between">
+                                <p class="text-sm font-semibold text-slate-700">העצירות שלך</p>
+                                <span class="text-xs text-slate-400">גרור לשינוי סדר</span>
+                            </div>
+                            <div id="intermediateLocationsList" class="mt-3 flex flex-wrap gap-2 min-h-[48px]" aria-live="polite"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="step-card rounded-2xl bg-white" data-step="4" data-active="false" data-complete="false">
+                <button type="button" class="w-full flex items-center justify-between p-4 sm:p-5" data-step-toggle>
+                    <div class="flex items-center gap-3">
+                        <span class="step-indicator w-9 h-9 rounded-full border border-slate-200 bg-slate-100 flex items-center justify-center text-slate-500 font-semibold">4</span>
+                        <div>
+                            <p class="step-title text-lg font-semibold text-slate-700">שמירת מסלול</p>
+                            <p class="text-sm text-slate-400">שמור לשימוש חוזר במחשב הזה</p>
+                        </div>
+                    </div>
+                    <span id="saveStepStatus" class="text-sm text-slate-500">💾 עדיין לא נשמר</span>
+                </button>
+                <div class="step-body hidden px-4 pb-5 sm:px-5">
+                    <div class="bg-slate-50 rounded-xl p-4 sm:p-5 space-y-4">
+                        <div>
+                            <label for="saveRouteNameInput" class="block text-sm font-medium text-slate-700 mb-3">איך לקרוא למסלול?</label>
+                            <div class="flex flex-col sm:flex-row gap-3">
+                                <input type="text" id="saveRouteNameInput" placeholder="לדוגמה: מסלול לקניות"
+                                       class="shadow-sm border border-slate-200 rounded-xl w-full py-2.5 px-4 text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-200">
+                                <button id="saveRouteBtn"
+                                        class="bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-2.5 px-5 rounded-xl whitespace-nowrap">
+                                    ✔️ שמור מסלול
+                                </button>
+                            </div>
+                            <div id="saveSuccess" class="mt-3 text-sm text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-2 hidden">
+                                ✅ נשמר בהצלחה!
+                            </div>
+                        </div>
+                        <div>
+                            <p class="text-sm font-semibold text-slate-700">מסלולים שמורים</p>
+                            <div id="savedRoutesList" class="mt-3 grid gap-3 sm:grid-cols-2"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
         </div>
 
-        <!-- נקודת התחלה -->
-        <div class="mb-4 p-3 bg-blue-50 rounded-md border border-blue-200">
-            <label for="startAddressInput" class="block text-blue-700 text-sm font-bold mb-2">נקודת התחלה:</label>
-            <div class="flex mb-2">
-                <input type="text" id="startAddressInput" list="startSuggestions" placeholder="הזן כתובת התחלה"
-                       class="shadow appearance-none border rounded-l w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline flex-grow">
-                <datalist id="startSuggestions"></datalist>
-                <button id="setStartLocationBtn"
-                        class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-r focus:outline-none focus:shadow-outline">
-                    הגדר
+        <section class="mt-6 bg-gradient-to-r from-indigo-50 to-emerald-50 border border-indigo-100 rounded-2xl p-4 sm:p-5">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                    <h2 class="text-lg font-semibold text-slate-800">מוכנים לחשב מסלול?</h2>
+                    <p class="text-sm text-slate-500">נחשב סדר אופטימלי בהתאם לנקודות שבחרת.</p>
+                </div>
+                <button id="optimizeRouteBtn"
+                        class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-6 rounded-xl">
+                    ⚡ חשב מסלול אופטימלי
                 </button>
             </div>
-            <div id="currentStartLocation" class="text-gray-700 text-sm">
-                <span class="font-semibold">התחלה:</span> לא הוגדר
+            <div class="mt-4">
+                <h3 class="text-sm font-semibold text-slate-700 mb-2">מסלול מומלץ</h3>
+                <ol id="optimizedRouteList" class="bg-white rounded-xl border border-slate-100 p-3 min-h-[80px]"></ol>
             </div>
-            <button id="clearStartLocationBtn" class="mt-2 text-xs text-red-500 hover:text-red-700 underline">נקה נקודת התחלה</button>
-        </div>
+            <button id="openInGoogleMapsBtn"
+                    class="w-full sm:w-auto mt-4 bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 px-5 rounded-xl hidden">
+                🧭 פתח במפות Google
+            </button>
+        </section>
 
-        <!-- נקודת סיום -->
-        <div class="mb-4 p-3 bg-blue-50 rounded-md border border-blue-200">
-            <label for="endAddressInput" class="block text-blue-700 text-sm font-bold mb-2">נקודת סיום:</label>
-            <div class="flex mb-2">
-                <input type="text" id="endAddressInput" list="endSuggestions" placeholder="הזן כתובת סיום"
-                       class="shadow appearance-none border rounded-l w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline flex-grow">
-                <datalist id="endSuggestions"></datalist>
-                <button id="setEndLocationBtn"
-                        class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-r focus:outline-none focus:shadow-outline">
-                    הגדר
-                </button>
-            </div>
-            <div id="currentEndLocation" class="text-gray-700 text-sm">
-                <span class="font-semibold">סיום:</span> לא הוגדר
-            </div>
-            <button id="clearEndLocationBtn" class="mt-2 text-xs text-red-500 hover:text-red-700 underline">נקה נקודת סיום</button>
-        </div>
-
-        <!-- קלט מיקומים ביניים -->
-        <div class="mb-4">
-            <label for="intermediateAddressInput" class="block text-gray-700 text-sm font-bold mb-2">הזן מיקום ביניים:</label>
-            <div class="flex">
-                <input type="text" id="intermediateAddressInput" list="intermediateSuggestions" placeholder="לדוגמה: רחוב הרצל 1, תל אביב"
-                       class="shadow appearance-none border rounded-l w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline flex-grow">
-                <datalist id="intermediateSuggestions"></datalist>
-                <button id="addIntermediateLocationBtn"
-                        class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-r focus:outline-none focus:shadow-outline">
-                    הוסף
-                </button>
-            </div>
-        </div>
-
-        <!-- רשימת מיקומים ביניים -->
-        <div class="mb-4">
-            <h2 class="text-xl font-semibold mb-2 text-gray-800">מיקומי ביניים שנוספו:</h2>
-            <ul id="intermediateLocationsList" class="bg-gray-50 p-3 rounded-md border border-gray-200 min-h-[80px]">
-                <!-- מיקומים יתווספו כאן -->
-            </ul>
-        </div>
-
-        <!-- שמירת מסלולים בזיכרון -->
-        <div class="mb-4 p-3 bg-green-50 rounded-md border border-green-200">
-            <h2 class="text-xl font-semibold mb-2 text-gray-800">שמירת מסלולים</h2>
-            <label for="saveRouteNameInput" class="block text-gray-700 text-sm font-bold mb-2">שם המסלול לשמירה:</label>
-            <div class="flex mb-2">
-                <input type="text" id="saveRouteNameInput" placeholder="לדוגמה: מסלול לקניות"
-                       class="shadow appearance-none border rounded-l w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline flex-grow">
-                <button id="saveRouteBtn"
-                        class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-r focus:outline-none focus:shadow-outline">
-                    שמור
-                </button>
-            </div>
-            <div class="text-xs text-gray-500 mb-2">השמירה מתבצעת בזיכרון הדפדפן (LocalStorage).</div>
-            <ul id="savedRoutesList" class="bg-white p-3 rounded-md border border-gray-200 min-h-[60px]">
-                <!-- רשימת מסלולים שמורים -->
-            </ul>
-        </div>
-
-        <!-- כפתור אופטימיזציה -->
-        <button id="optimizeRouteBtn"
-                class="w-full bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md focus:outline-none focus:shadow-outline mb-4">
-            אופטימיזציה של המסלול
-        </button>
-
-        <!-- מסלול אופטימלי -->
-        <div>
-            <h2 class="text-xl font-semibold mb-2 text-gray-800">מסלול מומלץ:</h2>
-            <ol id="optimizedRouteList" class="bg-gray-50 p-3 rounded-md border border-gray-200 min-h-[80px]">
-                <!-- המסלול האופטימלי יוצג כאן -->
-            </ol>
-        </div>
-
-        <!-- כפתור פתיחה במפות Google -->
-        <button id="openInGoogleMapsBtn"
-                class="w-full bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md focus:outline-none focus:shadow-outline mt-4 hidden">
-            פתח במפות Google
-        </button>
-
-        <!-- ייחוס (Attribution) ל-OpenStreetMap -->
-        <div class="text-xs text-gray-500 mt-4 text-center">
-            חיפוש כתובות באמצעות <a href="https://nominatim.org/" target="_blank" class="underline">Nominatim</a>.
+        <div class="text-xs text-slate-400 mt-6 text-center">
+            חיפוש כתובות באמצעות <a href="https://nominatim.org/" target="_blank" class="underline">Nominatim</a> ·
             ניתוב באמצעות <a href="http://project-osrm.org/" target="_blank" class="underline">OSRM</a>.
         </div>
     </div>
@@ -132,12 +228,13 @@
     <script src="src/geocode.js"></script>
 
     <script>
-        let intermediateLocations = []; // Array to store { address: string, lat: number, lng: number } objects for intermediate points
-        let startLocation = null; // { address: string, lat: number, lng: number } object for start location
-        let endLocation = null;   // { address: string, lat: number, lng: number } object for end location
-        let lastOptimizedRoute = []; // Stores the last optimized route for Google Maps export
+        let intermediateLocations = [];
+        let startLocation = null;
+        let endLocation = null;
+        let lastOptimizedRoute = [];
+        let activeStep = 1;
+        let draggedIntermediateIndex = null;
 
-        // Get DOM element references
         const startAddressInput = document.getElementById('startAddressInput');
         const setStartLocationBtn = document.getElementById('setStartLocationBtn');
         const currentStartLocationDiv = document.getElementById('currentStartLocation');
@@ -155,6 +252,7 @@
         const saveRouteNameInput = document.getElementById('saveRouteNameInput');
         const saveRouteBtn = document.getElementById('saveRouteBtn');
         const savedRoutesList = document.getElementById('savedRoutesList');
+        const saveSuccess = document.getElementById('saveSuccess');
 
         const optimizeRouteBtn = document.getElementById('optimizeRouteBtn');
         const optimizedRouteList = document.getElementById('optimizedRouteList');
@@ -164,36 +262,91 @@
         const endSuggestions = document.getElementById('endSuggestions');
         const intermediateSuggestions = document.getElementById('intermediateSuggestions');
 
+        const startStepStatus = document.getElementById('startStepStatus');
+        const endStepStatus = document.getElementById('endStepStatus');
+        const intermediateStepStatus = document.getElementById('intermediateStepStatus');
+        const saveStepStatus = document.getElementById('saveStepStatus');
+
+        const stepCards = Array.from(document.querySelectorAll('.step-card'));
+
         startAddressInput.addEventListener('input', () => updateSuggestions(startAddressInput, startSuggestions));
         endAddressInput.addEventListener('input', () => updateSuggestions(endAddressInput, endSuggestions));
         intermediateAddressInput.addEventListener('input', () => updateSuggestions(intermediateAddressInput, intermediateSuggestions));
 
-        // Maximum number of intermediate points for TSP (brute force)
-        const TSP_MAX_INTERMEDIATE_POINTS = 8; // 8! = 40,320 permutations, 9! = 362,880, 10! = 3,628,800. 8 is safer for browser performance.
+        const TSP_MAX_INTERMEDIATE_POINTS = 8;
         const SAVED_ROUTES_KEY = 'savedRoutes';
 
-        /**
-         * Displays a message to the user in the message box.
-         * @param {string} message - The message to display.
-         * @param {'info' | 'error'} type - The type of message (determines styling).
-         */
         function showMessage(message, type = 'info') {
-            messageBox.textContent = message;
-            messageBox.className = `mt-4 p-3 rounded-md ${type === 'error' ? 'bg-red-100 border-red-400 text-red-700' : 'bg-yellow-100 border-yellow-400 text-yellow-700'}`;
+            const palette = {
+                info: 'bg-slate-100 text-slate-700 border border-slate-200',
+                success: 'bg-emerald-50 text-emerald-700 border border-emerald-100',
+                error: 'bg-rose-50 text-rose-700 border border-rose-100'
+            };
+            const icon = type === 'success' ? '✅' : type === 'error' ? '⚠️' : 'ℹ️';
+            messageBox.textContent = `${icon} ${message}`;
+            messageBox.className = `mt-4 p-3 rounded-xl ${palette[type] || palette.info}`;
             messageBox.classList.remove('hidden');
-            // Hide message after 5 seconds
             setTimeout(() => {
                 messageBox.classList.add('hidden');
-            }, 5000);
+            }, 4500);
         }
 
+        function setActiveStep(stepNumber) {
+            activeStep = stepNumber;
+            stepCards.forEach((card) => {
+                const step = Number(card.dataset.step);
+                const isActive = step === stepNumber;
+                card.dataset.active = isActive ? 'true' : 'false';
+                const body = card.querySelector('.step-body');
+                if (body) {
+                    body.classList.toggle('hidden', !isActive);
+                }
+            });
+        }
 
-        /**
-         * Adds an intermediate location to the list.
-         * @param {{ address: string, lat: number, lng: number }} locationData - The location data.
-         */
+        function updateStepProgress() {
+            const startComplete = Boolean(startLocation);
+            const endComplete = Boolean(endLocation);
+            const intermediateComplete = intermediateLocations.length > 0;
+            const savedComplete = loadSavedRoutes().length > 0;
+
+            stepCards.forEach((card) => {
+                const step = Number(card.dataset.step);
+                if (step === 1) {
+                    card.dataset.complete = startComplete ? 'true' : 'false';
+                }
+                if (step === 2) {
+                    card.dataset.complete = endComplete ? 'true' : 'false';
+                }
+                if (step === 3) {
+                    card.dataset.complete = intermediateComplete ? 'true' : 'false';
+                }
+                if (step === 4) {
+                    card.dataset.complete = savedComplete ? 'true' : 'false';
+                }
+            });
+
+            startStepStatus.textContent = startComplete ? '✔️ נבחרה' : '⏳ עדיין לא נבחרה';
+            endStepStatus.textContent = endComplete ? '✔️ נבחרה' : '⏳ עדיין לא נבחרה';
+            intermediateStepStatus.textContent = intermediateComplete ? `✔️ ${intermediateLocations.length} עצירות` : '➕ הוספה חופשית';
+            saveStepStatus.textContent = savedComplete ? '✔️ יש מסלולים שמורים' : '💾 עדיין לא נשמר';
+
+            if (startComplete && activeStep === 1) {
+                setActiveStep(2);
+            }
+            if (startComplete && endComplete && activeStep === 2) {
+                setActiveStep(3);
+            }
+        }
+
+        document.querySelectorAll('[data-step-toggle]').forEach((button) => {
+            button.addEventListener('click', () => {
+                const step = Number(button.closest('.step-card').dataset.step);
+                setActiveStep(step);
+            });
+        });
+
         function addIntermediateLocation(locationData) {
-            // Check if the location already exists (by address or very close coordinates)
             const isDuplicate = intermediateLocations.some(loc =>
                 loc.address === locationData.address ||
                 (Math.abs(loc.lat - locationData.lat) < 0.0001 && Math.abs(loc.lng - locationData.lng) < 0.0001)
@@ -202,19 +355,15 @@
                                  (endLocation && endLocation.address === locationData.address);
 
             if (isDuplicate || isStartOrEnd) {
-                showMessage('מיקום זה כבר נוסף (כביניים, התחלה או סיום).', 'info');
+                showMessage('המיקום הזה כבר מופיע ברשימה שלך.', 'info');
                 return;
             }
 
             intermediateLocations.push(locationData);
-            updateIntermediateLocationsList(); // Ensure this is called to update the list
-            clearRouteDisplay(); // Clear route if locations change
+            updateIntermediateLocationsList();
+            clearRouteDisplay();
         }
 
-        /**
-         * Loads saved routes from localStorage.
-         * @returns {Array} list of saved routes.
-         */
         function loadSavedRoutes() {
             try {
                 const raw = localStorage.getItem(SAVED_ROUTES_KEY);
@@ -227,10 +376,6 @@
             }
         }
 
-        /**
-         * Persists saved routes to localStorage.
-         * @param {Array} routes - list of saved routes.
-         */
         function persistSavedRoutes(routes) {
             try {
                 localStorage.setItem(SAVED_ROUTES_KEY, JSON.stringify(routes));
@@ -240,10 +385,6 @@
             }
         }
 
-        /**
-         * Builds a default name for a saved route.
-         * @returns {string} default name.
-         */
         function buildDefaultRouteName() {
             const now = new Date();
             const datePart = now.toLocaleDateString('he-IL');
@@ -251,38 +392,39 @@
             return `מסלול ${datePart} ${timePart}`;
         }
 
-        /**
-         * Updates the displayed list of saved routes.
-         */
         function updateSavedRoutesList() {
             const routes = loadSavedRoutes();
             savedRoutesList.innerHTML = '';
             if (routes.length === 0) {
-                savedRoutesList.innerHTML = '<li class="text-gray-500">אין מסלולים שמורים עדיין.</li>';
+                savedRoutesList.innerHTML = '<div class="text-sm text-slate-400 bg-white border border-slate-100 rounded-xl p-3">עדיין אין מסלולים שמורים.</div>';
+                updateStepProgress();
                 return;
             }
 
             routes.forEach((route) => {
-                const listItem = document.createElement('li');
-                listItem.className = 'flex justify-between items-center py-1 px-2 border-b border-gray-200 last:border-b-0';
+                const listItem = document.createElement('div');
+                const totalPoints = [route.startLocation, ...(route.intermediateLocations || []), route.endLocation].filter(Boolean).length;
+                listItem.className = 'bg-white border border-slate-100 rounded-xl p-4 flex flex-col gap-3';
                 listItem.innerHTML = `
-                    <span>${route.name}</span>
+                    <div>
+                        <p class="text-sm font-semibold text-slate-800">${route.name}</p>
+                        <p class="text-xs text-slate-400">${totalPoints} נקודות במסלול</p>
+                    </div>
                     <div class="flex gap-2">
-                        <button data-id="${route.id}" class="load-saved-route-btn text-blue-600 hover:text-blue-800 text-sm px-2 py-1 rounded-md">טען</button>
-                        <button data-id="${route.id}" class="delete-saved-route-btn text-red-500 hover:text-red-700 text-sm px-2 py-1 rounded-md">מחק</button>
+                        <button data-id="${route.id}" class="load-saved-route-btn bg-indigo-50 text-indigo-700 hover:bg-indigo-100 text-sm px-3 py-2 rounded-lg">טען</button>
+                        <button data-id="${route.id}" class="delete-saved-route-btn text-slate-400 hover:text-rose-500 text-sm px-3 py-2 rounded-lg">מחק</button>
                     </div>
                 `;
                 savedRoutesList.appendChild(listItem);
             });
+
+            updateStepProgress();
         }
 
-        /**
-         * Saves the current addresses as a route in localStorage.
-         */
         function saveCurrentRoute() {
             const hasAnyLocation = startLocation || endLocation || intermediateLocations.length > 0;
             if (!hasAnyLocation) {
-                showMessage('אין כתובות לשמירה עדיין.', 'error');
+                showMessage('בחר לפחות נקודת התחלה או יעד כדי לשמור.', 'info');
                 return;
             }
 
@@ -300,13 +442,15 @@
             persistSavedRoutes(routes);
             saveRouteNameInput.value = '';
             updateSavedRoutesList();
-            showMessage('המסלול נשמר בהצלחה!', 'info');
+            saveSuccess.classList.remove('hidden');
+            saveSuccess.classList.add('save-success');
+            setTimeout(() => {
+                saveSuccess.classList.add('hidden');
+                saveSuccess.classList.remove('save-success');
+            }, 2500);
+            showMessage('המסלול נשמר. אפשר לטעון אותו בכל רגע.', 'success');
         }
 
-        /**
-         * Loads a saved route and updates current inputs.
-         * @param {string} routeId - id of the saved route.
-         */
         function loadRouteById(routeId) {
             const routes = loadSavedRoutes();
             const route = routes.find((item) => item.id === routeId);
@@ -321,58 +465,53 @@
             updateFixedLocationDisplays();
             updateIntermediateLocationsList();
             clearRouteDisplay();
-            showMessage('המסלול נטען. אפשר להוסיף או להסיר כתובות.', 'info');
+            showMessage('המסלול נטען. אפשר להמשיך לעריכה.', 'success');
+            setActiveStep(3);
         }
 
-        /**
-         * Deletes a saved route.
-         * @param {string} routeId - id of the saved route.
-         */
         function deleteRouteById(routeId) {
             const routes = loadSavedRoutes().filter((route) => route.id !== routeId);
             persistSavedRoutes(routes);
             updateSavedRoutesList();
-            showMessage('המסלול נמחק.', 'info');
+            showMessage('המסלול הוסר מהשמירה.', 'info');
         }
 
-        /**
-         * Updates the displayed list of intermediate locations.
-         */
+        function renderIntermediateChip(location, index) {
+            const chip = document.createElement('div');
+            chip.className = 'chip flex items-center gap-2 bg-white border border-slate-200 rounded-full px-3 py-1.5 text-sm text-slate-600 shadow-sm';
+            chip.setAttribute('draggable', 'true');
+            chip.dataset.index = index;
+            chip.innerHTML = `
+                <span class="text-slate-400 cursor-grab">⠿</span>
+                <span>${location.address}</span>
+                <button data-index="${index}" class="remove-intermediate-btn text-slate-400 hover:text-rose-500 text-xs">✕</button>
+            `;
+            return chip;
+        }
+
         function updateIntermediateLocationsList() {
-            intermediateLocationsList.innerHTML = ''; // Clear existing list
+            intermediateLocationsList.innerHTML = '';
             if (intermediateLocations.length === 0) {
-                intermediateLocationsList.innerHTML = '<li class="text-gray-500">עדיין לא הוספת מיקומי ביניים.</li>';
+                intermediateLocationsList.innerHTML = '<span class="text-sm text-slate-400">אין עצירות ביניים עדיין.</span>';
             } else {
                 intermediateLocations.forEach((location, index) => {
-                    const listItem = document.createElement('li');
-                    listItem.className = 'flex justify-between items-center py-1 px-2 border-b border-gray-200 last:border-b-0';
-                    listItem.innerHTML = `
-                        <span>${index + 1}. ${location.address}</span>
-                        <button data-index="${index}" class="remove-intermediate-btn text-red-500 hover:text-red-700 text-sm px-2 py-1 rounded-md">הסר</button>
-                    `;
-                    intermediateLocationsList.appendChild(listItem);
+                    const chip = renderIntermediateChip(location, index);
+                    intermediateLocationsList.appendChild(chip);
                 });
             }
+            updateStepProgress();
         }
 
-        /**
-         * Updates the display of fixed start and end locations.
-         */
         function updateFixedLocationDisplays() {
-            // Clear existing content
-            currentStartLocationDiv.textContent = '';
-            const startLabel = document.createElement('span');
-            startLabel.className = 'font-semibold';
-            startLabel.textContent = 'התחלה:';
-            currentStartLocationDiv.appendChild(startLabel);
-            currentStartLocationDiv.append(' ', startLocation ? startLocation.address : 'לא הוגדר');
+            currentStartLocationDiv.innerHTML = startLocation
+                ? `<span class="inline-flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-full px-3 py-1">✔️ ${startLocation.address}</span>`
+                : '<span class="inline-flex items-center gap-2 text-sm text-slate-400 bg-white border border-slate-200 rounded-full px-3 py-1">⏳ בחר נקודת התחלה</span>';
 
-            currentEndLocationDiv.textContent = '';
-            const endLabel = document.createElement('span');
-            endLabel.className = 'font-semibold';
-            endLabel.textContent = 'סיום:';
-            currentEndLocationDiv.appendChild(endLabel);
-            currentEndLocationDiv.append(' ', endLocation ? endLocation.address : 'לא הוגדר');
+            currentEndLocationDiv.innerHTML = endLocation
+                ? `<span class="inline-flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-full px-3 py-1">✔️ ${endLocation.address}</span>`
+                : '<span class="inline-flex items-center gap-2 text-sm text-slate-400 bg-white border border-slate-200 rounded-full px-3 py-1">⏳ בחר נקודת סיום</span>';
+
+            updateStepProgress();
         }
 
         function buildGeocodeFailureMessage(error) {
@@ -383,20 +522,19 @@
             return baseMessage;
         }
 
-        // Event listener for setting start location
         setStartLocationBtn.addEventListener('click', async () => {
             const address = startAddressInput.value.trim();
             if (address) {
-                showMessage('מחפש כתובת לנקודת התחלה...', 'info');
+                showMessage('מחפש נקודת התחלה...', 'info');
                 try {
                     const fullAddress = getFullAddress(startAddressInput);
                     const locData = await geocodeAddress(fullAddress, detectLanguage(fullAddress));
                     if (locData) {
                         startLocation = locData;
-                        updateFixedLocationDisplays(); // Update the text display
+                        updateFixedLocationDisplays();
                         startAddressInput.value = '';
-                        showMessage('נקודת התחלה הוגדרה!', 'info');
-                        clearRouteDisplay(); // Clear route if locations change
+                        showMessage('נקודת התחלה נבחרה.', 'success');
+                        clearRouteDisplay();
                     } else {
                         showMessage('לא נמצאה כתובת עבור נקודת ההתחלה.', 'error');
                     }
@@ -404,32 +542,31 @@
                     showMessage(buildGeocodeFailureMessage(error), 'error');
                 }
             } else {
-                showMessage('אנא הזן כתובת לנקודת ההתחלה.', 'error');
+                showMessage('כתוב כתובת כדי לבחור נקודת התחלה.', 'info');
             }
         });
 
-        // Event listener for clearing start location
         clearStartLocationBtn.addEventListener('click', () => {
             startLocation = null;
-            updateFixedLocationDisplays(); // Update the text display
-            showMessage('נקודת התחלה נמחקה.', 'info');
+            updateFixedLocationDisplays();
+            showMessage('נקודת ההתחלה הוסרה.', 'info');
             clearRouteDisplay();
+            setActiveStep(1);
         });
 
-        // Event listener for setting end location
         setEndLocationBtn.addEventListener('click', async () => {
             const address = endAddressInput.value.trim();
             if (address) {
-                showMessage('מחפש כתובת לנקודת סיום...', 'info');
+                showMessage('מחפש נקודת סיום...', 'info');
                 try {
                     const fullAddress = getFullAddress(endAddressInput);
                     const locData = await geocodeAddress(fullAddress, detectLanguage(fullAddress));
                     if (locData) {
                         endLocation = locData;
-                        updateFixedLocationDisplays(); // Update the text display
+                        updateFixedLocationDisplays();
                         endAddressInput.value = '';
-                        showMessage('נקודת סיום הוגדרה!', 'info');
-                        clearRouteDisplay(); // Clear route if locations change
+                        showMessage('נקודת סיום נבחרה.', 'success');
+                        clearRouteDisplay();
                     } else {
                         showMessage('לא נמצאה כתובת עבור נקודת הסיום.', 'error');
                     }
@@ -437,30 +574,29 @@
                     showMessage(buildGeocodeFailureMessage(error), 'error');
                 }
             } else {
-                showMessage('אנא הזן כתובת לנקודת הסיום.', 'error');
+                showMessage('כתוב כתובת כדי לבחור נקודת סיום.', 'info');
             }
         });
 
-        // Event listener for clearing end location
         clearEndLocationBtn.addEventListener('click', () => {
             endLocation = null;
-            updateFixedLocationDisplays(); // Update the text display
-            showMessage('נקודת סיום נמחקה.', 'info');
+            updateFixedLocationDisplays();
+            showMessage('נקודת הסיום הוסרה.', 'info');
             clearRouteDisplay();
+            setActiveStep(2);
         });
 
-        // Event listener for adding intermediate location from search input
         addIntermediateLocationBtn.addEventListener('click', async () => {
             const address = intermediateAddressInput.value.trim();
             if (address) {
-                showMessage('מחפש כתובת למיקום ביניים...', 'info');
+                showMessage('מחפש עצירת ביניים...', 'info');
                 try {
                     const fullAddress = getFullAddress(intermediateAddressInput);
                     const locData = await geocodeAddress(fullAddress, detectLanguage(fullAddress));
                     if (locData) {
                         addIntermediateLocation(locData);
-                        intermediateAddressInput.value = ''; // Clear input field
-                        showMessage('מיקום ביניים נוסף!', 'info');
+                        intermediateAddressInput.value = '';
+                        showMessage('עצירת ביניים נוספה.', 'success');
                     } else {
                         showMessage('לא נמצאה כתובת עבור החיפוש.', 'error');
                     }
@@ -468,24 +604,54 @@
                     showMessage(buildGeocodeFailureMessage(error), 'error');
                 }
             } else {
-                showMessage('אנא הזן כתובת לחיפוש.', 'error');
+                showMessage('כתוב כתובת כדי להוסיף עצירה.', 'info');
             }
         });
 
-        // Event listener for removing an intermediate location from the list
         intermediateLocationsList.addEventListener('click', (event) => {
             if (event.target.classList.contains('remove-intermediate-btn')) {
                 const indexToRemove = parseInt(event.target.dataset.index);
-                intermediateLocations.splice(indexToRemove, 1); // Remove location from array
-                updateIntermediateLocationsList(); // Update the display
-                clearRouteDisplay(); // Clear route if locations change
+                intermediateLocations.splice(indexToRemove, 1);
+                updateIntermediateLocationsList();
+                clearRouteDisplay();
             }
         });
 
-        // Event listener for saving current route
+        intermediateLocationsList.addEventListener('dragstart', (event) => {
+            const target = event.target.closest('.chip');
+            if (!target) return;
+            draggedIntermediateIndex = Number(target.dataset.index);
+            target.classList.add('dragging');
+            event.dataTransfer.effectAllowed = 'move';
+        });
+
+        intermediateLocationsList.addEventListener('dragend', (event) => {
+            const target = event.target.closest('.chip');
+            if (target) {
+                target.classList.remove('dragging');
+            }
+            draggedIntermediateIndex = null;
+        });
+
+        intermediateLocationsList.addEventListener('dragover', (event) => {
+            event.preventDefault();
+        });
+
+        intermediateLocationsList.addEventListener('drop', (event) => {
+            event.preventDefault();
+            const targetChip = event.target.closest('.chip');
+            if (!targetChip || draggedIntermediateIndex === null) return;
+            const dropIndex = Number(targetChip.dataset.index);
+            if (dropIndex === draggedIntermediateIndex) return;
+            const [moved] = intermediateLocations.splice(draggedIntermediateIndex, 1);
+            intermediateLocations.splice(dropIndex, 0, moved);
+            updateIntermediateLocationsList();
+            clearRouteDisplay();
+            showMessage('הסדר עודכן.', 'success');
+        });
+
         saveRouteBtn.addEventListener('click', saveCurrentRoute);
 
-        // Event listener for loading/deleting saved routes
         savedRoutesList.addEventListener('click', (event) => {
             if (event.target.classList.contains('load-saved-route-btn')) {
                 const routeId = event.target.dataset.id;
@@ -497,22 +663,13 @@
             }
         });
 
-        /**
-         * Clears the displayed route and hides the "Open in Google Maps" button.
-         */
         function clearRouteDisplay() {
-            optimizedRouteList.innerHTML = '<li class="text-gray-500">המסלול נוקה.</li>';
-            openInGoogleMapsBtn.classList.add('hidden'); // Hide the button
-            lastOptimizedRoute = []; // Clear the stored route
+            optimizedRouteList.innerHTML = '<li class="text-sm text-slate-400">המסלול יופיע כאן לאחר חישוב.</li>';
+            openInGoogleMapsBtn.classList.add('hidden');
+            lastOptimizedRoute = [];
         }
 
-        /**
-         * Fetches a duration matrix from OSRM Table API.
-         * @param {Array<{ lat: number, lng: number }>} coords - Array of coordinate objects.
-         * @returns {Promise<Array<Array<number>> | null>} - Matrix of durations in seconds or null on error.
-         */
         async function getOSRMTable(coords) {
-            // OSRM Table API expects coordinates in the format: lng,lat;lng,lat...
             const coordinatesString = coords.map(loc => `${loc.lng},${loc.lat}`).join(';');
             const url = `https://router.project-osrm.org/table/v1/driving/${coordinatesString}?sources=all&destinations=all`;
 
@@ -522,23 +679,17 @@
                     throw new Error(`OSRM Table API error: ${response.statusText} (Status: ${response.status})`);
                 }
                 const data = await response.json();
-                // data.durations contains a matrix of travel times in seconds
                 return data.durations;
             } catch (error) {
                 console.error('Error fetching OSRM table:', error);
-                showMessage('שגיאה בחישוב זמני נסיעה. נסה שוב מאוחר יותר או בדוק את חיבור האינטרנט.', 'error');
+                showMessage('שגיאה בחישוב זמני נסיעה. נסה שוב מאוחר יותר.', 'error');
                 return null;
             }
         }
 
-
-        /**
-         * Constructs and opens a Google Maps URL for the optimized route.
-         * Uses the Google Maps URL scheme for directions.
-         */
         function openInGoogleMaps() {
             if (lastOptimizedRoute.length < 2) {
-                showMessage('אין מסלול מחושב לפתיחה במפות Google.', 'error');
+                showMessage('אין מסלול מחושב לפתיחה במפות Google.', 'info');
                 return;
             }
 
@@ -546,14 +697,12 @@
             let destination = '';
             let waypoints = [];
 
-            // Determine origin, destination, and waypoints based on the optimized route
             if (lastOptimizedRoute.length === 2) {
                 origin = `${lastOptimizedRoute[0].lat},${lastOptimizedRoute[0].lng}`;
                 destination = `${lastOptimizedRoute[1].lat},${lastOptimizedRoute[1].lng}`;
             } else {
                 origin = `${lastOptimizedRoute[0].lat},${lastOptimizedRoute[0].lng}`;
                 destination = `${lastOptimizedRoute[lastOptimizedRoute.length - 1].lat},${lastOptimizedRoute[lastOptimizedRoute.length - 1].lng}`;
-                // All points between origin and destination are waypoints
                 waypoints = lastOptimizedRoute.slice(1, -1).map(loc => `${loc.lat},${loc.lng}`);
             }
 
@@ -563,83 +712,74 @@
             if (waypoints.length > 0) {
                 googleMapsUrl += `&waypoints=${encodeURIComponent(waypoints.join('|'))}`;
             }
-            googleMapsUrl += `&travelmode=driving`; // Assuming driving mode
+            googleMapsUrl += `&travelmode=driving`;
 
             window.open(googleMapsUrl, '_blank');
         }
 
-
-        // Event listener for the "Optimize Route" button
         optimizeRouteBtn.addEventListener('click', async () => {
             let allPointsForOSRM = [];
-            // Add start location if set
             if (startLocation) allPointsForOSRM.push(startLocation);
-            // Add all intermediate locations
             allPointsForOSRM = allPointsForOSRM.concat(intermediateLocations);
-            // Add end location if set
             if (endLocation) allPointsForOSRM.push(endLocation);
 
             if (allPointsForOSRM.length < 2) {
-                showMessage('אנא הוסף לפחות שתי נקודות (התחלה, סיום או ביניים) כדי לבצע אופטימיזציה.', 'error');
-                optimizedRouteList.innerHTML = '<li class="text-gray-500">הוסף לפחות שתי נקודות.</li>';
+                showMessage('בחר לפחות שתי נקודות כדי לחשב מסלול.', 'info');
+                optimizedRouteList.innerHTML = '<li class="text-sm text-slate-400">הוסף לפחות שתי נקודות.</li>';
                 clearRouteDisplay();
                 return;
             }
 
-            // Determine which optimization algorithm to use
-            let optimizedRoute;
             if (intermediateLocations.length <= TSP_MAX_INTERMEDIATE_POINTS) {
-                showMessage('מחשב מסלול אופטימלי (TSP - מדויק עבור מספר קטן של נקודות)...', 'info');
+                showMessage('מחשב מסלול מדויק לנקודות שבחרת...', 'info');
             } else {
-                showMessage('מחשב מסלול אופטימלי (שכן קרוב - מהיר עבור מספר רב של נקודות)...', 'info');
+                showMessage('מחשב מסלול מהיר לנקודות שבחרת...', 'info');
             }
-            optimizedRouteList.innerHTML = '<li class="text-gray-500">בטעינה...</li>';
-            openInGoogleMapsBtn.classList.add('hidden'); // Hide button during calculation
+            optimizedRouteList.innerHTML = '<li class="text-sm text-slate-400">בטעינה...</li>';
+            openInGoogleMapsBtn.classList.add('hidden');
 
             try {
-                // Get the full duration matrix from OSRM for all points
                 const durationsMatrix = await getOSRMTable(allPointsForOSRM);
 
                 if (!durationsMatrix) {
-                    optimizedRouteList.innerHTML = '<li class="text-gray-500">שגיאה בחישוב המסלול.</li>';
+                    optimizedRouteList.innerHTML = '<li class="text-sm text-slate-400">שגיאה בחישוב המסלול.</li>';
                     return;
                 }
 
-                // Call the appropriate optimization function
+                let optimizedRoute;
                 if (intermediateLocations.length <= TSP_MAX_INTERMEDIATE_POINTS) {
                     optimizedRoute = solveTSP(intermediateLocations, durationsMatrix, startLocation, endLocation, allPointsForOSRM);
                 } else {
                     optimizedRoute = optimizeRouteNearestNeighbor(intermediateLocations, durationsMatrix, startLocation, endLocation, allPointsForOSRM);
                 }
 
-                optimizedRouteList.innerHTML = ''; // Clear existing list
+                optimizedRouteList.innerHTML = '';
                 optimizedRoute.forEach((location, index) => {
                     const listItem = document.createElement('li');
-                    listItem.className = 'py-1 px-2 border-b border-gray-200 last:border-b-0';
+                    listItem.className = 'py-1 px-2 border-b border-slate-100 last:border-b-0 text-sm text-slate-700';
                     listItem.textContent = `${index + 1}. ${location.address}`;
                     optimizedRouteList.appendChild(listItem);
                 });
 
-                lastOptimizedRoute = optimizedRoute; // Store the optimized route
-                openInGoogleMapsBtn.classList.remove('hidden'); // Show the button
+                lastOptimizedRoute = optimizedRoute;
+                openInGoogleMapsBtn.classList.remove('hidden');
 
-                showMessage('המסלול חושב בהצלחה!', 'info');
+                showMessage('המסלול מוכן! אפשר לפתוח במפות Google.', 'success');
 
             } catch (error) {
                 console.error('Optimization process failed:', error);
-                showMessage('שגיאה באופטימיזציה של המסלול. וודא שיש חיבור אינטרנט תקין ושהכתובות חוקיות.', 'error');
-                optimizedRouteList.innerHTML = '<li class="text-gray-500">שגיאה בחישוב המסלול.</li>';
+                showMessage('שגיאה באופטימיזציה של המסלול. בדוק חיבור אינטרנט וכתובות.', 'error');
+                optimizedRouteList.innerHTML = '<li class="text-sm text-slate-400">שגיאה בחישוב המסלול.</li>';
             }
         });
 
-        // Event listener for the "Open in Google Maps" button
         openInGoogleMapsBtn.addEventListener('click', openInGoogleMaps);
 
-        // Initial updates on page load
         updateIntermediateLocationsList();
         updateFixedLocationDisplays();
         updateSavedRoutesList();
-        clearRouteDisplay(); // Ensure the "Open in Google Maps" button is hidden initially
+        clearRouteDisplay();
+        setActiveStep(1);
     </script>
 </body>
 </html>
