@@ -4,8 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>מארגן נסיעות אופטימלי</title>
+    <meta name="theme-color" content="#0f172a">
     <link rel="icon" type="image/png" href="appLogo.png">
+    <link rel="apple-touch-icon" href="appLogo.png">
+    <link rel="manifest" href="manifest.json">
     <!-- Tailwind CSS CDN -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class'
+        };
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
@@ -69,95 +77,117 @@
                 font-size: 0.75rem;
             }
         }
+
+        .dark .step-card {
+            border-color: #334155;
+        }
+
+        .dark .step-card[data-complete="true"] .step-indicator {
+            background: #14532d;
+            color: #bbf7d0;
+            border-color: #166534;
+        }
+
+        .dark .step-card[data-complete="true"] .step-title {
+            color: #f8fafc;
+        }
+
+        .dark .step-card[data-active="true"] {
+            box-shadow: 0 12px 30px -25px rgba(15, 23, 42, 0.8);
+        }
     </style>
 </head>
-<body class="bg-slate-50 flex items-start sm:items-center justify-center min-h-screen p-4">
-    <div class="bg-white p-6 sm:p-8 rounded-2xl shadow-xl w-full max-w-3xl">
+<body class="bg-slate-50 dark:bg-slate-900 dark:text-slate-100 flex items-start sm:items-center justify-center min-h-screen p-4 transition-colors duration-300">
+    <button id="themeToggleBtn" class="fixed top-4 left-4 z-20 flex items-center gap-2 bg-white/90 text-slate-700 border border-slate-200 shadow-sm rounded-full px-3 py-2 text-xs sm:text-sm hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-100 dark:border-slate-700 dark:hover:bg-slate-700 transition-colors">
+        <span id="themeToggleIcon" aria-hidden="true">🌙</span>
+        <span id="themeToggleLabel">מצב כהה</span>
+    </button>
+    <div class="bg-white dark:bg-slate-900 dark:border dark:border-slate-700 p-6 sm:p-8 rounded-2xl shadow-xl w-full max-w-3xl transition-colors">
         <div class="flex flex-col items-center mb-6 text-center">
-            <img src="https://github.com/Bhirsh1991/Route-optimization-/blob/main/appLogo.png?raw=true" alt="לוגו האפליקציה" class="w-16 h-16 rounded-full object-cover shadow-sm">
-            <h1 class="text-2xl sm:text-3xl font-bold mt-4 text-slate-900">מארגן נסיעות אופטימלי</h1>
-            <p class="text-sm text-slate-500 mt-1">בונים מסלול חכם בצעדים פשוטים</p>
+            <img src="appLogo.png" alt="לוגו האפליקציה" class="w-16 h-16 rounded-full object-cover shadow-sm">
+            <h1 class="text-2xl sm:text-3xl font-bold mt-4 text-slate-900 dark:text-slate-100">מארגן נסיעות אופטימלי</h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">בונים מסלול חכם בצעדים פשוטים</p>
         </div>
 
         <div id="messageBox" class="mt-4 p-3 rounded-xl hidden" role="status"></div>
 
         <div class="space-y-4">
-            <section class="step-card rounded-2xl bg-white" data-step="1" data-active="true" data-complete="false">
+            <section class="step-card rounded-2xl bg-white dark:bg-slate-800" data-step="1" data-active="true" data-complete="false">
                 <button type="button" class="w-full flex items-center justify-between p-4 sm:p-5" data-step-toggle>
                     <div class="flex items-center gap-3">
-                        <span class="step-indicator w-9 h-9 rounded-full border border-slate-200 bg-slate-100 flex items-center justify-center text-slate-500 font-semibold">1</span>
+                        <span class="step-indicator w-9 h-9 rounded-full border border-slate-200 bg-slate-100 dark:border-slate-600 dark:bg-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-200 font-semibold">1</span>
                         <div>
-                            <p class="step-title text-lg font-semibold text-slate-700">נקודת התחלה</p>
-                            <p class="text-sm text-slate-400">בחר נקודת יציאה למסלול</p>
+                            <p class="step-title text-lg font-semibold text-slate-700 dark:text-slate-100">נקודת התחלה</p>
+                            <p class="text-sm text-slate-400 dark:text-slate-400">בחר נקודת יציאה למסלול</p>
                         </div>
                     </div>
-                    <span id="startStepStatus" class="step-status text-sm text-slate-500">⏳ עדיין לא נבחרה</span>
+                    <span id="startStepStatus" class="step-status text-sm text-slate-500 dark:text-slate-300">⏳ עדיין לא נבחרה</span>
                 </button>
                 <div class="step-body px-4 pb-5 sm:px-5">
-                    <div class="bg-slate-50 rounded-xl p-4 sm:p-5">
-                        <label for="startAddressInput" class="block text-sm font-medium text-slate-700 mb-3">כתובת התחלה</label>
+                    <div class="bg-slate-50 dark:bg-slate-800/70 rounded-xl p-4 sm:p-5">
+                        <label for="startAddressInput" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-3">כתובת התחלה</label>
                         <div class="flex flex-col sm:flex-row gap-3">
                             <input type="text" id="startAddressInput" list="startSuggestions" placeholder="הזן כתובת או מקום"
-                                   class="shadow-sm border border-slate-200 rounded-xl w-full py-2.5 px-4 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                                   class="shadow-sm border border-slate-200 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 rounded-xl w-full py-2.5 px-4 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-400">
                             <datalist id="startSuggestions"></datalist>
                             <button id="setStartLocationBtn"
                                     class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-5 rounded-xl whitespace-nowrap">
                                 📍 בחר נקודת התחלה
                             </button>
                         </div>
-                        <div id="currentStartLocation" class="mt-3 text-sm text-slate-600"></div>
-                        <button id="clearStartLocationBtn" class="mt-3 text-xs text-slate-400 hover:text-slate-600 underline">נקה בחירה</button>
+                        <div id="currentStartLocation" class="mt-3 text-sm text-slate-600 dark:text-slate-300"></div>
+                        <button id="clearStartLocationBtn" class="mt-3 text-xs text-slate-400 hover:text-slate-600 dark:text-slate-400 dark:hover:text-slate-200 underline">נקה בחירה</button>
                     </div>
                 </div>
             </section>
 
-            <section class="step-card rounded-2xl bg-white" data-step="2" data-active="false" data-complete="false">
+            <section class="step-card rounded-2xl bg-white dark:bg-slate-800" data-step="2" data-active="false" data-complete="false">
                 <button type="button" class="w-full flex items-center justify-between p-4 sm:p-5" data-step-toggle>
                     <div class="flex items-center gap-3">
-                        <span class="step-indicator w-9 h-9 rounded-full border border-slate-200 bg-slate-100 flex items-center justify-center text-slate-500 font-semibold">2</span>
+                        <span class="step-indicator w-9 h-9 rounded-full border border-slate-200 bg-slate-100 dark:border-slate-600 dark:bg-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-200 font-semibold">2</span>
                         <div>
-                            <p class="step-title text-lg font-semibold text-slate-700">נקודת סיום</p>
-                            <p class="text-sm text-slate-400">בחר יעד למסלול</p>
+                            <p class="step-title text-lg font-semibold text-slate-700 dark:text-slate-100">נקודת סיום</p>
+                            <p class="text-sm text-slate-400 dark:text-slate-400">בחר יעד למסלול</p>
                         </div>
                     </div>
-                    <span id="endStepStatus" class="step-status text-sm text-slate-500">⏳ עדיין לא נבחרה</span>
+                    <span id="endStepStatus" class="step-status text-sm text-slate-500 dark:text-slate-300">⏳ עדיין לא נבחרה</span>
                 </button>
                 <div class="step-body hidden px-4 pb-5 sm:px-5">
-                    <div class="bg-slate-50 rounded-xl p-4 sm:p-5">
-                        <label for="endAddressInput" class="block text-sm font-medium text-slate-700 mb-3">כתובת סיום</label>
+                    <div class="bg-slate-50 dark:bg-slate-800/70 rounded-xl p-4 sm:p-5">
+                        <label for="endAddressInput" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-3">כתובת סיום</label>
                         <div class="flex flex-col sm:flex-row gap-3">
                             <input type="text" id="endAddressInput" list="endSuggestions" placeholder="הזן כתובת או מקום"
-                                   class="shadow-sm border border-slate-200 rounded-xl w-full py-2.5 px-4 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                                   class="shadow-sm border border-slate-200 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 rounded-xl w-full py-2.5 px-4 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-400">
                             <datalist id="endSuggestions"></datalist>
                             <button id="setEndLocationBtn"
                                     class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-5 rounded-xl whitespace-nowrap">
                                 📍 בחר נקודת סיום
                             </button>
                         </div>
-                        <div id="currentEndLocation" class="mt-3 text-sm text-slate-600"></div>
-                        <button id="clearEndLocationBtn" class="mt-3 text-xs text-slate-400 hover:text-slate-600 underline">נקה בחירה</button>
+                        <div id="currentEndLocation" class="mt-3 text-sm text-slate-600 dark:text-slate-300"></div>
+                        <button id="clearEndLocationBtn" class="mt-3 text-xs text-slate-400 hover:text-slate-600 dark:text-slate-400 dark:hover:text-slate-200 underline">נקה בחירה</button>
                     </div>
                 </div>
             </section>
 
-            <section class="step-card rounded-2xl bg-white" data-step="3" data-active="false" data-complete="false">
+            <section class="step-card rounded-2xl bg-white dark:bg-slate-800" data-step="3" data-active="false" data-complete="false">
                 <button type="button" class="w-full flex items-center justify-between p-4 sm:p-5" data-step-toggle>
                     <div class="flex items-center gap-3">
-                        <span class="step-indicator w-9 h-9 rounded-full border border-slate-200 bg-slate-100 flex items-center justify-center text-slate-500 font-semibold">3</span>
+                        <span class="step-indicator w-9 h-9 rounded-full border border-slate-200 bg-slate-100 dark:border-slate-600 dark:bg-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-200 font-semibold">3</span>
                         <div>
-                            <p class="step-title text-lg font-semibold text-slate-700">עצירות ביניים</p>
-                            <p class="text-sm text-slate-400">אופציונלי · הוסף נקודות בדרך</p>
+                            <p class="step-title text-lg font-semibold text-slate-700 dark:text-slate-100">עצירות ביניים</p>
+                            <p class="text-sm text-slate-400 dark:text-slate-400">אופציונלי · הוסף נקודות בדרך</p>
                         </div>
                     </div>
-                    <span id="intermediateStepStatus" class="step-status text-sm text-slate-500">➕ הוספה חופשית</span>
+                    <span id="intermediateStepStatus" class="step-status text-sm text-slate-500 dark:text-slate-300">➕ הוספה חופשית</span>
                 </button>
                 <div class="step-body hidden px-4 pb-5 sm:px-5">
-                    <div class="bg-slate-50 rounded-xl p-4 sm:p-5 space-y-4">
+                    <div class="bg-slate-50 dark:bg-slate-800/70 rounded-xl p-4 sm:p-5 space-y-4">
                         <div>
-                            <label for="intermediateAddressInput" class="block text-sm font-medium text-slate-700 mb-3">הוסף עצירת ביניים</label>
+                            <label for="intermediateAddressInput" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-3">הוסף עצירת ביניים</label>
                             <div class="flex flex-col sm:flex-row gap-3">
                                 <input type="text" id="intermediateAddressInput" list="intermediateSuggestions" placeholder="לדוגמה: רחוב הרצל 1, תל אביב"
-                                       class="shadow-sm border border-slate-200 rounded-xl w-full py-2.5 px-4 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                                       class="shadow-sm border border-slate-200 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 rounded-xl w-full py-2.5 px-4 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-400">
                                 <datalist id="intermediateSuggestions"></datalist>
                                 <button id="addIntermediateLocationBtn"
                                         class="bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 px-5 rounded-xl whitespace-nowrap">
@@ -167,8 +197,8 @@
                         </div>
                         <div>
                             <div class="flex items-center justify-between">
-                                <p class="text-sm font-semibold text-slate-700">העצירות שלך</p>
-                                <span class="text-xs text-slate-400">גרור לשינוי סדר</span>
+                                <p class="text-sm font-semibold text-slate-700 dark:text-slate-200">העצירות שלך</p>
+                                <span class="text-xs text-slate-400 dark:text-slate-400">גרור לשינוי סדר</span>
                             </div>
                             <div id="intermediateLocationsList" class="mt-3 flex flex-wrap gap-2 min-h-[48px]" aria-live="polite"></div>
                         </div>
@@ -176,35 +206,35 @@
                 </div>
             </section>
 
-            <section class="step-card rounded-2xl bg-white" data-step="4" data-active="false" data-complete="false">
+            <section class="step-card rounded-2xl bg-white dark:bg-slate-800" data-step="4" data-active="false" data-complete="false">
                 <button type="button" class="w-full flex items-center justify-between p-4 sm:p-5" data-step-toggle>
                     <div class="flex items-center gap-3">
-                        <span class="step-indicator w-9 h-9 rounded-full border border-slate-200 bg-slate-100 flex items-center justify-center text-slate-500 font-semibold">4</span>
+                        <span class="step-indicator w-9 h-9 rounded-full border border-slate-200 bg-slate-100 dark:border-slate-600 dark:bg-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-200 font-semibold">4</span>
                         <div>
-                            <p class="step-title text-lg font-semibold text-slate-700">שמירת מסלול</p>
-                            <p class="text-sm text-slate-400">שמור לשימוש חוזר במחשב הזה</p>
+                            <p class="step-title text-lg font-semibold text-slate-700 dark:text-slate-100">שמירת מסלול</p>
+                            <p class="text-sm text-slate-400 dark:text-slate-400">שמור לשימוש חוזר במחשב הזה</p>
                         </div>
                     </div>
-                    <span id="saveStepStatus" class="step-status text-sm text-slate-500">💾 עדיין לא נשמר</span>
+                    <span id="saveStepStatus" class="step-status text-sm text-slate-500 dark:text-slate-300">💾 עדיין לא נשמר</span>
                 </button>
                 <div class="step-body hidden px-4 pb-5 sm:px-5">
-                    <div class="bg-slate-50 rounded-xl p-4 sm:p-5 space-y-4">
+                    <div class="bg-slate-50 dark:bg-slate-800/70 rounded-xl p-4 sm:p-5 space-y-4">
                         <div>
-                            <label for="saveRouteNameInput" class="block text-sm font-medium text-slate-700 mb-3">איך לקרוא למסלול?</label>
+                            <label for="saveRouteNameInput" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-3">איך לקרוא למסלול?</label>
                             <div class="flex flex-col sm:flex-row gap-3">
                                 <input type="text" id="saveRouteNameInput" placeholder="לדוגמה: מסלול לקניות"
-                                       class="shadow-sm border border-slate-200 rounded-xl w-full py-2.5 px-4 text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-200">
+                                       class="shadow-sm border border-slate-200 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 rounded-xl w-full py-2.5 px-4 text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:focus:ring-emerald-400">
                                 <button id="saveRouteBtn"
                                         class="bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-2.5 px-5 rounded-xl whitespace-nowrap">
                                     ✔️ שמור מסלול
                                 </button>
                             </div>
-                            <div id="saveSuccess" class="mt-3 text-sm text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-2 hidden">
+                            <div id="saveSuccess" class="mt-3 text-sm text-emerald-700 bg-emerald-50 border border-emerald-100 dark:text-emerald-200 dark:bg-emerald-900/40 dark:border-emerald-700 rounded-xl px-3 py-2 hidden">
                                 ✅ נשמר בהצלחה!
                             </div>
                         </div>
                         <div>
-                            <p class="text-sm font-semibold text-slate-700">מסלולים שמורים</p>
+                            <p class="text-sm font-semibold text-slate-700 dark:text-slate-200">מסלולים שמורים</p>
                             <div id="savedRoutesList" class="mt-3 grid gap-3 sm:grid-cols-2"></div>
                         </div>
                     </div>
@@ -212,11 +242,11 @@
             </section>
         </div>
 
-        <section class="mt-6 bg-gradient-to-r from-indigo-50 to-emerald-50 border border-indigo-100 rounded-2xl p-4 sm:p-5">
+        <section class="mt-6 bg-gradient-to-r from-indigo-50 to-emerald-50 dark:from-slate-800 dark:to-slate-700 border border-indigo-100 dark:border-slate-700 rounded-2xl p-4 sm:p-5">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h2 class="text-lg font-semibold text-slate-800">מוכנים לחשב מסלול?</h2>
-                    <p class="text-sm text-slate-500">נחשב סדר אופטימלי בהתאם לנקודות שבחרת.</p>
+                    <h2 class="text-lg font-semibold text-slate-800 dark:text-slate-100">מוכנים לחשב מסלול?</h2>
+                    <p class="text-sm text-slate-500 dark:text-slate-300">נחשב סדר אופטימלי בהתאם לנקודות שבחרת.</p>
                 </div>
                 <button id="optimizeRouteBtn"
                         class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-6 rounded-xl">
@@ -224,16 +254,16 @@
                 </button>
             </div>
             <div class="mt-4">
-                <h3 class="text-sm font-semibold text-slate-700 mb-2">מסלול מומלץ</h3>
-                <ol id="optimizedRouteList" class="bg-white rounded-xl border border-slate-100 p-3 min-h-[80px]"></ol>
+                <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">מסלול מומלץ</h3>
+                <ol id="optimizedRouteList" class="bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 p-3 min-h-[80px]"></ol>
             </div>
             <button id="openInGoogleMapsBtn"
-                    class="w-full sm:w-auto mt-4 bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 px-5 rounded-xl hidden">
+                    class="w-full sm:w-auto mt-4 bg-slate-900 hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600 text-white font-semibold py-2.5 px-5 rounded-xl hidden">
                 🧭 פתח במפות Google
             </button>
         </section>
 
-        <div class="text-xs text-slate-400 mt-6 text-center">
+        <div class="text-xs text-slate-400 dark:text-slate-500 mt-6 text-center">
             חיפוש כתובות באמצעות <a href="https://nominatim.org/" target="_blank" class="underline">Nominatim</a> ·
             ניתוב באמצעות <a href="http://project-osrm.org/" target="_blank" class="underline">OSRM</a>.
         </div>
@@ -248,6 +278,11 @@
         let lastOptimizedRoute = [];
         let activeStep = 1;
         let draggedIntermediateIndex = null;
+
+        const THEME_STORAGE_KEY = 'preferredTheme';
+        const themeToggleBtn = document.getElementById('themeToggleBtn');
+        const themeToggleIcon = document.getElementById('themeToggleIcon');
+        const themeToggleLabel = document.getElementById('themeToggleLabel');
 
         const startAddressInput = document.getElementById('startAddressInput');
         const setStartLocationBtn = document.getElementById('setStartLocationBtn');
@@ -283,6 +318,33 @@
 
         const stepCards = Array.from(document.querySelectorAll('.step-card'));
 
+        function resolvePreferredTheme() {
+            const stored = localStorage.getItem(THEME_STORAGE_KEY);
+            if (stored === 'dark' || stored === 'light') {
+                return stored;
+            }
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                return 'dark';
+            }
+            return 'light';
+        }
+
+        function applyTheme(theme) {
+            const isDark = theme === 'dark';
+            document.documentElement.classList.toggle('dark', isDark);
+            themeToggleIcon.textContent = isDark ? '☀️' : '🌙';
+            themeToggleLabel.textContent = isDark ? 'מצב בהיר' : 'מצב כהה';
+        }
+
+        themeToggleBtn.addEventListener('click', () => {
+            const currentTheme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+            const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+            applyTheme(nextTheme);
+        });
+
+        applyTheme(resolvePreferredTheme());
+
         startAddressInput.addEventListener('input', () => updateSuggestions(startAddressInput, startSuggestions));
         endAddressInput.addEventListener('input', () => updateSuggestions(endAddressInput, endSuggestions));
         intermediateAddressInput.addEventListener('input', () => updateSuggestions(intermediateAddressInput, intermediateSuggestions));
@@ -292,9 +354,9 @@
 
         function showMessage(message, type = 'info') {
             const palette = {
-                info: 'bg-slate-100 text-slate-700 border border-slate-200',
-                success: 'bg-emerald-50 text-emerald-700 border border-emerald-100',
-                error: 'bg-rose-50 text-rose-700 border border-rose-100'
+                info: 'bg-slate-100 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:text-slate-100 dark:border-slate-700',
+                success: 'bg-emerald-50 text-emerald-700 border border-emerald-100 dark:bg-emerald-900/40 dark:text-emerald-200 dark:border-emerald-700',
+                error: 'bg-rose-50 text-rose-700 border border-rose-100 dark:bg-rose-900/40 dark:text-rose-200 dark:border-rose-700'
             };
             const icon = type === 'success' ? '✅' : type === 'error' ? '⚠️' : 'ℹ️';
             messageBox.textContent = `${icon} ${message}`;
@@ -410,7 +472,7 @@
             const routes = loadSavedRoutes();
             savedRoutesList.innerHTML = '';
             if (routes.length === 0) {
-                savedRoutesList.innerHTML = '<div class="text-sm text-slate-400 bg-white border border-slate-100 rounded-xl p-3">עדיין אין מסלולים שמורים.</div>';
+                savedRoutesList.innerHTML = '<div class="text-sm text-slate-400 dark:text-slate-400 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl p-3">עדיין אין מסלולים שמורים.</div>';
                 updateStepProgress();
                 return;
             }
@@ -418,15 +480,15 @@
             routes.forEach((route) => {
                 const listItem = document.createElement('div');
                 const totalPoints = [route.startLocation, ...(route.intermediateLocations || []), route.endLocation].filter(Boolean).length;
-                listItem.className = 'bg-white border border-slate-100 rounded-xl p-4 flex flex-col gap-3';
+                listItem.className = 'bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl p-4 flex flex-col gap-3';
                 listItem.innerHTML = `
                     <div>
-                        <p class="text-sm font-semibold text-slate-800">${route.name}</p>
-                        <p class="text-xs text-slate-400">${totalPoints} נקודות במסלול</p>
+                        <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">${route.name}</p>
+                        <p class="text-xs text-slate-400 dark:text-slate-400">${totalPoints} נקודות במסלול</p>
                     </div>
                     <div class="flex gap-2">
-                        <button data-id="${route.id}" class="load-saved-route-btn bg-indigo-50 text-indigo-700 hover:bg-indigo-100 text-sm px-3 py-2 rounded-lg">טען</button>
-                        <button data-id="${route.id}" class="delete-saved-route-btn text-slate-400 hover:text-rose-500 text-sm px-3 py-2 rounded-lg">מחק</button>
+                        <button data-id="${route.id}" class="load-saved-route-btn bg-indigo-50 text-indigo-700 hover:bg-indigo-100 dark:bg-indigo-900/40 dark:text-indigo-200 dark:hover:bg-indigo-900/60 text-sm px-3 py-2 rounded-lg">טען</button>
+                        <button data-id="${route.id}" class="delete-saved-route-btn text-slate-400 hover:text-rose-500 dark:text-slate-400 dark:hover:text-rose-300 text-sm px-3 py-2 rounded-lg">מחק</button>
                     </div>
                 `;
                 savedRoutesList.appendChild(listItem);
@@ -492,13 +554,13 @@
 
         function renderIntermediateChip(location, index) {
             const chip = document.createElement('div');
-            chip.className = 'chip flex items-center gap-2 bg-white border border-slate-200 rounded-full px-3 py-1.5 text-sm text-slate-600 shadow-sm';
+            chip.className = 'chip flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-full px-3 py-1.5 text-sm text-slate-600 dark:text-slate-200 shadow-sm';
             chip.setAttribute('draggable', 'true');
             chip.dataset.index = index;
             chip.innerHTML = `
-                <span class="text-slate-400 cursor-grab">⠿</span>
+                <span class="text-slate-400 dark:text-slate-500 cursor-grab">⠿</span>
                 <span>${location.address}</span>
-                <button data-index="${index}" class="remove-intermediate-btn text-slate-400 hover:text-rose-500 text-xs">✕</button>
+                <button data-index="${index}" class="remove-intermediate-btn text-slate-400 hover:text-rose-500 dark:text-slate-500 dark:hover:text-rose-300 text-xs">✕</button>
             `;
             return chip;
         }
@@ -506,7 +568,7 @@
         function updateIntermediateLocationsList() {
             intermediateLocationsList.innerHTML = '';
             if (intermediateLocations.length === 0) {
-                intermediateLocationsList.innerHTML = '<span class="text-sm text-slate-400">אין עצירות ביניים עדיין.</span>';
+                intermediateLocationsList.innerHTML = '<span class="text-sm text-slate-400 dark:text-slate-400">אין עצירות ביניים עדיין.</span>';
             } else {
                 intermediateLocations.forEach((location, index) => {
                     const chip = renderIntermediateChip(location, index);
@@ -518,12 +580,12 @@
 
         function updateFixedLocationDisplays() {
             currentStartLocationDiv.innerHTML = startLocation
-                ? `<span class="inline-flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-full px-3 py-1">✔️ ${startLocation.address}</span>`
-                : '<span class="inline-flex items-center gap-2 text-sm text-slate-400 bg-white border border-slate-200 rounded-full px-3 py-1">⏳ בחר נקודת התחלה</span>';
+                ? `<span class="inline-flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-100 dark:text-emerald-200 dark:bg-emerald-900/40 dark:border-emerald-700 rounded-full px-3 py-1">✔️ ${startLocation.address}</span>`
+                : '<span class="inline-flex items-center gap-2 text-sm text-slate-400 dark:text-slate-400 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-full px-3 py-1">⏳ בחר נקודת התחלה</span>';
 
             currentEndLocationDiv.innerHTML = endLocation
-                ? `<span class="inline-flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-full px-3 py-1">✔️ ${endLocation.address}</span>`
-                : '<span class="inline-flex items-center gap-2 text-sm text-slate-400 bg-white border border-slate-200 rounded-full px-3 py-1">⏳ בחר נקודת סיום</span>';
+                ? `<span class="inline-flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-100 dark:text-emerald-200 dark:bg-emerald-900/40 dark:border-emerald-700 rounded-full px-3 py-1">✔️ ${endLocation.address}</span>`
+                : '<span class="inline-flex items-center gap-2 text-sm text-slate-400 dark:text-slate-400 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-full px-3 py-1">⏳ בחר נקודת סיום</span>';
 
             updateStepProgress();
         }
@@ -714,7 +776,7 @@
         });
 
         function clearRouteDisplay() {
-            optimizedRouteList.innerHTML = '<li class="text-sm text-slate-400">המסלול יופיע כאן לאחר חישוב.</li>';
+            optimizedRouteList.innerHTML = '<li class="text-sm text-slate-400 dark:text-slate-400">המסלול יופיע כאן לאחר חישוב.</li>';
             openInGoogleMapsBtn.classList.add('hidden');
             lastOptimizedRoute = [];
         }
@@ -775,7 +837,7 @@
 
             if (allPointsForOSRM.length < 2) {
                 showMessage('בחר לפחות שתי נקודות כדי לחשב מסלול.', 'info');
-                optimizedRouteList.innerHTML = '<li class="text-sm text-slate-400">הוסף לפחות שתי נקודות.</li>';
+                optimizedRouteList.innerHTML = '<li class="text-sm text-slate-400 dark:text-slate-400">הוסף לפחות שתי נקודות.</li>';
                 clearRouteDisplay();
                 return;
             }
@@ -785,14 +847,14 @@
             } else {
                 showMessage('מחשב מסלול מהיר לנקודות שבחרת...', 'info');
             }
-            optimizedRouteList.innerHTML = '<li class="text-sm text-slate-400">בטעינה...</li>';
+            optimizedRouteList.innerHTML = '<li class="text-sm text-slate-400 dark:text-slate-400">בטעינה...</li>';
             openInGoogleMapsBtn.classList.add('hidden');
 
             try {
                 const durationsMatrix = await getOSRMTable(allPointsForOSRM);
 
                 if (!durationsMatrix) {
-                    optimizedRouteList.innerHTML = '<li class="text-sm text-slate-400">שגיאה בחישוב המסלול.</li>';
+                    optimizedRouteList.innerHTML = '<li class="text-sm text-slate-400 dark:text-slate-400">שגיאה בחישוב המסלול.</li>';
                     return;
                 }
 
@@ -806,7 +868,7 @@
                 optimizedRouteList.innerHTML = '';
                 optimizedRoute.forEach((location, index) => {
                     const listItem = document.createElement('li');
-                    listItem.className = 'py-1 px-2 border-b border-slate-100 last:border-b-0 text-sm text-slate-700';
+                    listItem.className = 'py-1 px-2 border-b border-slate-100 dark:border-slate-700 last:border-b-0 text-sm text-slate-700 dark:text-slate-200';
                     listItem.textContent = `${index + 1}. ${location.address}`;
                     optimizedRouteList.appendChild(listItem);
                 });
@@ -819,11 +881,19 @@
             } catch (error) {
                 console.error('Optimization process failed:', error);
                 showMessage('שגיאה באופטימיזציה של המסלול. בדוק חיבור אינטרנט וכתובות.', 'error');
-                optimizedRouteList.innerHTML = '<li class="text-sm text-slate-400">שגיאה בחישוב המסלול.</li>';
+                optimizedRouteList.innerHTML = '<li class="text-sm text-slate-400 dark:text-slate-400">שגיאה בחישוב המסלול.</li>';
             }
         });
 
         openInGoogleMapsBtn.addEventListener('click', openInGoogleMaps);
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js').catch((error) => {
+                    console.warn('Service worker registration failed:', error);
+                });
+            });
+        }
 
         updateIntermediateLocationsList();
         updateFixedLocationDisplays();

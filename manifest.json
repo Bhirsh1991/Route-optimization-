@@ -1,0 +1,17 @@
+{
+  "name": "מארגן נסיעות אופטימלי",
+  "short_name": "מסלול חכם",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "appLogo.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
