@@ -80,6 +80,24 @@
             </ul>
         </div>
 
+        <!-- שמירת מסלולים בזיכרון -->
+        <div class="mb-4 p-3 bg-green-50 rounded-md border border-green-200">
+            <h2 class="text-xl font-semibold mb-2 text-gray-800">שמירת מסלולים</h2>
+            <label for="saveRouteNameInput" class="block text-gray-700 text-sm font-bold mb-2">שם המסלול לשמירה:</label>
+            <div class="flex mb-2">
+                <input type="text" id="saveRouteNameInput" placeholder="לדוגמה: מסלול לקניות"
+                       class="shadow appearance-none border rounded-l w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline flex-grow">
+                <button id="saveRouteBtn"
+                        class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-r focus:outline-none focus:shadow-outline">
+                    שמור
+                </button>
+            </div>
+            <div class="text-xs text-gray-500 mb-2">השמירה מתבצעת בזיכרון הדפדפן (LocalStorage).</div>
+            <ul id="savedRoutesList" class="bg-white p-3 rounded-md border border-gray-200 min-h-[60px]">
+                <!-- רשימת מסלולים שמורים -->
+            </ul>
+        </div>
+
         <!-- כפתור אופטימיזציה -->
         <button id="optimizeRouteBtn"
                 class="w-full bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md focus:outline-none focus:shadow-outline mb-4">
@@ -130,6 +148,10 @@
         const addIntermediateLocationBtn = document.getElementById('addIntermediateLocationBtn');
         const intermediateLocationsList = document.getElementById('intermediateLocationsList');
 
+        const saveRouteNameInput = document.getElementById('saveRouteNameInput');
+        const saveRouteBtn = document.getElementById('saveRouteBtn');
+        const savedRoutesList = document.getElementById('savedRoutesList');
+
         const optimizeRouteBtn = document.getElementById('optimizeRouteBtn');
         const optimizedRouteList = document.getElementById('optimizedRouteList');
         const messageBox = document.getElementById('messageBox');
@@ -144,6 +166,7 @@
 
         // Maximum number of intermediate points for TSP (brute force)
         const TSP_MAX_INTERMEDIATE_POINTS = 8; // 8! = 40,320 permutations, 9! = 362,880, 10! = 3,628,800. 8 is safer for browser performance.
+        const SAVED_ROUTES_KEY = 'savedRoutes';
 
         /**
          * Displays a message to the user in the message box.
@@ -182,6 +205,130 @@
             intermediateLocations.push(locationData);
             updateIntermediateLocationsList(); // Ensure this is called to update the list
             clearRouteDisplay(); // Clear route if locations change
+        }
+
+        /**
+         * Loads saved routes from localStorage.
+         * @returns {Array} list of saved routes.
+         */
+        function loadSavedRoutes() {
+            try {
+                const raw = localStorage.getItem(SAVED_ROUTES_KEY);
+                if (!raw) return [];
+                const parsed = JSON.parse(raw);
+                return Array.isArray(parsed) ? parsed : [];
+            } catch (error) {
+                console.warn('Failed to read saved routes:', error);
+                return [];
+            }
+        }
+
+        /**
+         * Persists saved routes to localStorage.
+         * @param {Array} routes - list of saved routes.
+         */
+        function persistSavedRoutes(routes) {
+            try {
+                localStorage.setItem(SAVED_ROUTES_KEY, JSON.stringify(routes));
+            } catch (error) {
+                console.warn('Failed to save routes:', error);
+                showMessage('לא ניתן לשמור מסלולים בדפדפן הזה.', 'error');
+            }
+        }
+
+        /**
+         * Builds a default name for a saved route.
+         * @returns {string} default name.
+         */
+        function buildDefaultRouteName() {
+            const now = new Date();
+            const datePart = now.toLocaleDateString('he-IL');
+            const timePart = now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+            return `מסלול ${datePart} ${timePart}`;
+        }
+
+        /**
+         * Updates the displayed list of saved routes.
+         */
+        function updateSavedRoutesList() {
+            const routes = loadSavedRoutes();
+            savedRoutesList.innerHTML = '';
+            if (routes.length === 0) {
+                savedRoutesList.innerHTML = '<li class="text-gray-500">אין מסלולים שמורים עדיין.</li>';
+                return;
+            }
+
+            routes.forEach((route) => {
+                const listItem = document.createElement('li');
+                listItem.className = 'flex justify-between items-center py-1 px-2 border-b border-gray-200 last:border-b-0';
+                listItem.innerHTML = `
+                    <span>${route.name}</span>
+                    <div class="flex gap-2">
+                        <button data-id="${route.id}" class="load-saved-route-btn text-blue-600 hover:text-blue-800 text-sm px-2 py-1 rounded-md">טען</button>
+                        <button data-id="${route.id}" class="delete-saved-route-btn text-red-500 hover:text-red-700 text-sm px-2 py-1 rounded-md">מחק</button>
+                    </div>
+                `;
+                savedRoutesList.appendChild(listItem);
+            });
+        }
+
+        /**
+         * Saves the current addresses as a route in localStorage.
+         */
+        function saveCurrentRoute() {
+            const hasAnyLocation = startLocation || endLocation || intermediateLocations.length > 0;
+            if (!hasAnyLocation) {
+                showMessage('אין כתובות לשמירה עדיין.', 'error');
+                return;
+            }
+
+            const name = saveRouteNameInput.value.trim() || buildDefaultRouteName();
+            const routes = loadSavedRoutes();
+            const newRoute = {
+                id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+                name,
+                startLocation,
+                endLocation,
+                intermediateLocations: [...intermediateLocations]
+            };
+
+            routes.unshift(newRoute);
+            persistSavedRoutes(routes);
+            saveRouteNameInput.value = '';
+            updateSavedRoutesList();
+            showMessage('המסלול נשמר בהצלחה!', 'info');
+        }
+
+        /**
+         * Loads a saved route and updates current inputs.
+         * @param {string} routeId - id of the saved route.
+         */
+        function loadRouteById(routeId) {
+            const routes = loadSavedRoutes();
+            const route = routes.find((item) => item.id === routeId);
+            if (!route) {
+                showMessage('לא נמצא מסלול לשחזור.', 'error');
+                return;
+            }
+
+            startLocation = route.startLocation;
+            endLocation = route.endLocation;
+            intermediateLocations = Array.isArray(route.intermediateLocations) ? [...route.intermediateLocations] : [];
+            updateFixedLocationDisplays();
+            updateIntermediateLocationsList();
+            clearRouteDisplay();
+            showMessage('המסלול נטען. אפשר להוסיף או להסיר כתובות.', 'info');
+        }
+
+        /**
+         * Deletes a saved route.
+         * @param {string} routeId - id of the saved route.
+         */
+        function deleteRouteById(routeId) {
+            const routes = loadSavedRoutes().filter((route) => route.id !== routeId);
+            persistSavedRoutes(routes);
+            updateSavedRoutesList();
+            showMessage('המסלול נמחק.', 'info');
         }
 
         /**
@@ -308,6 +455,21 @@
                 intermediateLocations.splice(indexToRemove, 1); // Remove location from array
                 updateIntermediateLocationsList(); // Update the display
                 clearRouteDisplay(); // Clear route if locations change
+            }
+        });
+
+        // Event listener for saving current route
+        saveRouteBtn.addEventListener('click', saveCurrentRoute);
+
+        // Event listener for loading/deleting saved routes
+        savedRoutesList.addEventListener('click', (event) => {
+            if (event.target.classList.contains('load-saved-route-btn')) {
+                const routeId = event.target.dataset.id;
+                loadRouteById(routeId);
+            }
+            if (event.target.classList.contains('delete-saved-route-btn')) {
+                const routeId = event.target.dataset.id;
+                deleteRouteById(routeId);
             }
         });
 
@@ -452,8 +614,8 @@
         // Initial updates on page load
         updateIntermediateLocationsList();
         updateFixedLocationDisplays();
+        updateSavedRoutesList();
         clearRouteDisplay(); // Ensure the "Open in Google Maps" button is hidden initially
     </script>
 </body>
 </html>
-
