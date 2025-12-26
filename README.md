@@ -10,6 +10,20 @@ A simple web application for planning an optimal travel route.
 2. Set your start and end addresses.
 3. Add intermediate locations.
 4. Click the optimize button to compute the best route and optionally open it in Google Maps.
+5. Save routes for later use and open the saved-routes panel to load or preview parameters.
+
+## Interface Highlights
+
+- Light/dark mode updates the full layout, including the page background and theme color.
+- Saved routes now live in a dedicated slide-over panel with preview details (start, end, and stops).
+
+## PWA (Progressive Web App)
+
+The app includes a service worker and manifest so it can be installed as a PWA.
+
+1. Open the live demo in a supported browser (Chrome, Edge, or Safari on iOS).
+2. Use **Install App** (desktop) or **Add to Home Screen** (mobile) to install it.
+3. Launch the installed app to run it in a standalone window; it will cache assets for faster startup.
 
 ## Development
 
