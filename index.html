@@ -97,7 +97,7 @@
         }
     </style>
 </head>
-<body class="bg-slate-50 dark:bg-slate-900 dark:text-slate-100 flex items-start sm:items-center justify-center min-h-screen p-4 transition-colors duration-300">
+<body class="bg-slate-50 dark:bg-slate-950 dark:text-slate-100 flex items-start sm:items-center justify-center min-h-screen p-4 transition-colors duration-300">
     <button id="themeToggleBtn" class="fixed top-4 left-4 z-20 flex items-center gap-2 bg-white/90 text-slate-700 border border-slate-200 shadow-sm rounded-full px-3 py-2 text-xs sm:text-sm hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-100 dark:border-slate-700 dark:hover:bg-slate-700 transition-colors">
         <span id="themeToggleIcon" aria-hidden="true">🌙</span>
         <span id="themeToggleLabel">מצב כהה</span>
@@ -110,6 +110,14 @@
         </div>
 
         <div id="messageBox" class="mt-4 p-3 rounded-xl hidden" role="status"></div>
+
+        <div class="flex flex-wrap items-center justify-center gap-3 mb-6">
+            <button id="savedRoutesToggleBtn" class="hidden items-center gap-2 bg-white/90 text-slate-700 border border-slate-200 shadow-sm rounded-full px-4 py-2 text-xs sm:text-sm hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-100 dark:border-slate-700 dark:hover:bg-slate-700 transition-colors">
+                📚 מסלולים שמורים
+                <span id="savedRoutesCount" class="inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 text-xs font-semibold rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-100">0</span>
+            </button>
+            <span id="savedRoutesHint" class="text-xs text-slate-400 dark:text-slate-400">אין מסלולים שמורים עדיין.</span>
+        </div>
 
         <div class="space-y-4">
             <section class="step-card rounded-2xl bg-white dark:bg-slate-800" data-step="1" data-active="true" data-complete="false">
@@ -234,8 +242,14 @@
                             </div>
                         </div>
                         <div>
-                            <p class="text-sm font-semibold text-slate-700 dark:text-slate-200">מסלולים שמורים</p>
-                            <div id="savedRoutesList" class="mt-3 grid gap-3 sm:grid-cols-2"></div>
+                            <p class="text-sm font-semibold text-slate-700 dark:text-slate-200">ניהול מסלולים שמורים</p>
+                            <div class="mt-2 flex flex-col sm:flex-row sm:items-center gap-3">
+                                <button id="openSavedRoutesPanelBtn"
+                                        class="bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 px-5 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed">
+                                    📂 פתח חלונית מסלולים
+                                </button>
+                                <p class="text-xs text-slate-400 dark:text-slate-400">אם יש מסלול שמור, אפשר לפתוח את החלונית ולהציג פרטים.</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -268,6 +282,24 @@
             ניתוב באמצעות <a href="http://project-osrm.org/" target="_blank" class="underline">OSRM</a>.
         </div>
     </div>
+    <div id="savedRoutesPanel" class="fixed inset-0 z-40 hidden" aria-hidden="true">
+        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" data-saved-routes-close></div>
+        <div class="absolute right-0 top-0 h-full w-full max-w-md bg-white dark:bg-slate-900 shadow-2xl p-6 flex flex-col gap-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">המסלולים השמורים שלך</h2>
+                    <p class="text-xs text-slate-400 dark:text-slate-400">לחץ על "תצוגה מקדימה" כדי לראות את הפרמטרים.</p>
+                </div>
+                <button id="closeSavedRoutesPanelBtn" class="text-slate-400 hover:text-slate-600 dark:text-slate-400 dark:hover:text-slate-200 text-sm">✕ סגור</button>
+            </div>
+            <div id="savedRoutesList" class="grid gap-3 overflow-y-auto pr-1"></div>
+            <div class="border-t border-slate-100 dark:border-slate-700 pt-4">
+                <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-200">תצוגה מקדימה</h3>
+                <div id="savedRoutePreview" class="mt-2 text-sm text-slate-500 dark:text-slate-300">בחר מסלול כדי לראות את הפרטים.</div>
+            </div>
+        </div>
+    </div>
+
     <script src="src/optimizer.js"></script>
     <script src="src/geocode.js"></script>
 
@@ -302,6 +334,13 @@
         const saveRouteBtn = document.getElementById('saveRouteBtn');
         const savedRoutesList = document.getElementById('savedRoutesList');
         const saveSuccess = document.getElementById('saveSuccess');
+        const savedRoutesToggleBtn = document.getElementById('savedRoutesToggleBtn');
+        const savedRoutesCount = document.getElementById('savedRoutesCount');
+        const savedRoutesHint = document.getElementById('savedRoutesHint');
+        const openSavedRoutesPanelBtn = document.getElementById('openSavedRoutesPanelBtn');
+        const savedRoutesPanel = document.getElementById('savedRoutesPanel');
+        const closeSavedRoutesPanelBtn = document.getElementById('closeSavedRoutesPanelBtn');
+        const savedRoutePreview = document.getElementById('savedRoutePreview');
 
         const optimizeRouteBtn = document.getElementById('optimizeRouteBtn');
         const optimizedRouteList = document.getElementById('optimizedRouteList');
@@ -329,11 +368,17 @@
             return 'light';
         }
 
+        const themeColorMeta = document.querySelector('meta[name="theme-color"]');
+
         function applyTheme(theme) {
             const isDark = theme === 'dark';
             document.documentElement.classList.toggle('dark', isDark);
+            document.body.classList.toggle('dark', isDark);
             themeToggleIcon.textContent = isDark ? '☀️' : '🌙';
             themeToggleLabel.textContent = isDark ? 'מצב בהיר' : 'מצב כהה';
+            if (themeColorMeta) {
+                themeColorMeta.setAttribute('content', isDark ? '#020617' : '#f8fafc');
+            }
         }
 
         themeToggleBtn.addEventListener('click', () => {
@@ -473,9 +518,19 @@
             savedRoutesList.innerHTML = '';
             if (routes.length === 0) {
                 savedRoutesList.innerHTML = '<div class="text-sm text-slate-400 dark:text-slate-400 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl p-3">עדיין אין מסלולים שמורים.</div>';
+                savedRoutesToggleBtn.classList.add('hidden');
+                savedRoutesHint.classList.remove('hidden');
+                savedRoutesCount.textContent = '0';
+                openSavedRoutesPanelBtn.disabled = true;
+                renderRoutePreview(null);
                 updateStepProgress();
                 return;
             }
+
+            savedRoutesToggleBtn.classList.remove('hidden');
+            savedRoutesHint.classList.add('hidden');
+            savedRoutesCount.textContent = routes.length.toString();
+            openSavedRoutesPanelBtn.disabled = false;
 
             routes.forEach((route) => {
                 const listItem = document.createElement('div');
@@ -486,8 +541,9 @@
                         <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">${route.name}</p>
                         <p class="text-xs text-slate-400 dark:text-slate-400">${totalPoints} נקודות במסלול</p>
                     </div>
-                    <div class="flex gap-2">
+                    <div class="flex flex-wrap gap-2">
                         <button data-id="${route.id}" class="load-saved-route-btn bg-indigo-50 text-indigo-700 hover:bg-indigo-100 dark:bg-indigo-900/40 dark:text-indigo-200 dark:hover:bg-indigo-900/60 text-sm px-3 py-2 rounded-lg">טען</button>
+                        <button data-id="${route.id}" class="preview-saved-route-btn bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600 text-sm px-3 py-2 rounded-lg">תצוגה מקדימה</button>
                         <button data-id="${route.id}" class="delete-saved-route-btn text-slate-400 hover:text-rose-500 dark:text-slate-400 dark:hover:text-rose-300 text-sm px-3 py-2 rounded-lg">מחק</button>
                     </div>
                 `;
@@ -769,6 +825,12 @@
                 const routeId = event.target.dataset.id;
                 loadRouteById(routeId);
             }
+            if (event.target.classList.contains('preview-saved-route-btn')) {
+                const routeId = event.target.dataset.id;
+                const routes = loadSavedRoutes();
+                const route = routes.find((item) => item.id === routeId);
+                renderRoutePreview(route);
+            }
             if (event.target.classList.contains('delete-saved-route-btn')) {
                 const routeId = event.target.dataset.id;
                 deleteRouteById(routeId);
@@ -887,6 +949,15 @@
 
         openInGoogleMapsBtn.addEventListener('click', openInGoogleMaps);
 
+        savedRoutesToggleBtn.addEventListener('click', openSavedRoutesPanel);
+        openSavedRoutesPanelBtn.addEventListener('click', openSavedRoutesPanel);
+        closeSavedRoutesPanelBtn.addEventListener('click', closeSavedRoutesPanel);
+        savedRoutesPanel.addEventListener('click', (event) => {
+            if (event.target.matches('[data-saved-routes-close]')) {
+                closeSavedRoutesPanel();
+            }
+        });
+
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./service-worker.js').catch((error) => {
@@ -903,3 +974,32 @@
     </script>
 </body>
 </html>
+        function openSavedRoutesPanel() {
+            savedRoutesPanel.classList.remove('hidden');
+            savedRoutesPanel.setAttribute('aria-hidden', 'false');
+        }
+
+        function closeSavedRoutesPanel() {
+            savedRoutesPanel.classList.add('hidden');
+            savedRoutesPanel.setAttribute('aria-hidden', 'true');
+        }
+
+        function renderRoutePreview(route) {
+            if (!route) {
+                savedRoutePreview.textContent = 'בחר מסלול כדי לראות את הפרטים.';
+                return;
+            }
+            const previewStops = Array.isArray(route.intermediateLocations) && route.intermediateLocations.length > 0
+                ? route.intermediateLocations.map((stop) => `<li>${stop.address}</li>`).join('')
+                : '<li class="text-slate-400 dark:text-slate-400">אין עצירות ביניים.</li>';
+            savedRoutePreview.innerHTML = `
+                <div class="space-y-2">
+                    <div><span class="font-semibold">נקודת התחלה:</span> ${route.startLocation ? route.startLocation.address : 'לא הוגדרה'}</div>
+                    <div><span class="font-semibold">נקודת סיום:</span> ${route.endLocation ? route.endLocation.address : 'לא הוגדרה'}</div>
+                    <div>
+                        <span class="font-semibold">עצירות ביניים:</span>
+                        <ul class="list-disc list-inside mt-1 space-y-1">${previewStops}</ul>
+                    </div>
+                </div>
+            `;
+        }
