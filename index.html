@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>מארגן נסיעות אופטימלי</title>
+    <link rel="icon" type="image/png" href="appLogo.png">
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -55,9 +56,22 @@
                 opacity: 1;
             }
         }
+        .step-status {
+            max-width: 180px;
+            line-height: 1.4;
+            text-align: right;
+            white-space: normal;
+        }
+
+        @media (max-width: 640px) {
+            .step-status {
+                max-width: 140px;
+                font-size: 0.75rem;
+            }
+        }
     </style>
 </head>
-<body class="bg-slate-50 flex items-center justify-center min-h-screen p-4">
+<body class="bg-slate-50 flex items-start sm:items-center justify-center min-h-screen p-4">
     <div class="bg-white p-6 sm:p-8 rounded-2xl shadow-xl w-full max-w-3xl">
         <div class="flex flex-col items-center mb-6 text-center">
             <img src="https://github.com/Bhirsh1991/Route-optimization-/blob/main/appLogo.png?raw=true" alt="לוגו האפליקציה" class="w-16 h-16 rounded-full object-cover shadow-sm">
@@ -77,7 +91,7 @@
                             <p class="text-sm text-slate-400">בחר נקודת יציאה למסלול</p>
                         </div>
                     </div>
-                    <span id="startStepStatus" class="text-sm text-slate-500">⏳ עדיין לא נבחרה</span>
+                    <span id="startStepStatus" class="step-status text-sm text-slate-500">⏳ עדיין לא נבחרה</span>
                 </button>
                 <div class="step-body px-4 pb-5 sm:px-5">
                     <div class="bg-slate-50 rounded-xl p-4 sm:p-5">
@@ -106,7 +120,7 @@
                             <p class="text-sm text-slate-400">בחר יעד למסלול</p>
                         </div>
                     </div>
-                    <span id="endStepStatus" class="text-sm text-slate-500">⏳ עדיין לא נבחרה</span>
+                    <span id="endStepStatus" class="step-status text-sm text-slate-500">⏳ עדיין לא נבחרה</span>
                 </button>
                 <div class="step-body hidden px-4 pb-5 sm:px-5">
                     <div class="bg-slate-50 rounded-xl p-4 sm:p-5">
@@ -135,7 +149,7 @@
                             <p class="text-sm text-slate-400">אופציונלי · הוסף נקודות בדרך</p>
                         </div>
                     </div>
-                    <span id="intermediateStepStatus" class="text-sm text-slate-500">➕ הוספה חופשית</span>
+                    <span id="intermediateStepStatus" class="step-status text-sm text-slate-500">➕ הוספה חופשית</span>
                 </button>
                 <div class="step-body hidden px-4 pb-5 sm:px-5">
                     <div class="bg-slate-50 rounded-xl p-4 sm:p-5 space-y-4">
@@ -171,7 +185,7 @@
                             <p class="text-sm text-slate-400">שמור לשימוש חוזר במחשב הזה</p>
                         </div>
                     </div>
-                    <span id="saveStepStatus" class="text-sm text-slate-500">💾 עדיין לא נשמר</span>
+                    <span id="saveStepStatus" class="step-status text-sm text-slate-500">💾 עדיין לא נשמר</span>
                 </button>
                 <div class="step-body hidden px-4 pb-5 sm:px-5">
                     <div class="bg-slate-50 rounded-xl p-4 sm:p-5 space-y-4">
@@ -326,8 +340,8 @@
                 }
             });
 
-            startStepStatus.textContent = startComplete ? '✔️ נבחרה' : '⏳ עדיין לא נבחרה';
-            endStepStatus.textContent = endComplete ? '✔️ נבחרה' : '⏳ עדיין לא נבחרה';
+            startStepStatus.textContent = formatLocationStatus(startLocation, '⏳ עדיין לא נבחרה');
+            endStepStatus.textContent = formatLocationStatus(endLocation, '⏳ עדיין לא נבחרה');
             intermediateStepStatus.textContent = intermediateComplete ? `✔️ ${intermediateLocations.length} עצירות` : '➕ הוספה חופשית';
             saveStepStatus.textContent = savedComplete ? '✔️ יש מסלולים שמורים' : '💾 עדיין לא נשמר';
 
@@ -514,6 +528,13 @@
             updateStepProgress();
         }
 
+        function formatLocationStatus(location, emptyText) {
+            if (!location) {
+                return emptyText;
+            }
+            return `✔️ ${location.address}`;
+        }
+
         function buildGeocodeFailureMessage(error) {
             const baseMessage = error instanceof Error && error.message ? error.message : 'שגיאה בחיפוש הכתובת. נסה שוב.';
             if (window.location.protocol === 'file:') {
@@ -522,18 +543,47 @@
             return baseMessage;
         }
 
+        async function geocodeAddressWithFallback(address, lang) {
+            const primary = await geocodeAddress(address, lang);
+            if (primary) {
+                return { ...primary, wasNumberStripped: false };
+            }
+            const stripped = stripHouseNumber(address);
+            if (!stripped || stripped === address) {
+                return null;
+            }
+            const fallback = await geocodeAddress(stripped, lang);
+            if (!fallback) {
+                return null;
+            }
+            return { ...fallback, wasNumberStripped: true, strippedQuery: stripped };
+        }
+
+        function decorateLocationResult(locationData) {
+            if (!locationData) {
+                return null;
+            }
+            if (locationData.wasNumberStripped) {
+                return {
+                    ...locationData,
+                    address: `${locationData.address} (ללא מספר)`
+                };
+            }
+            return locationData;
+        }
+
         setStartLocationBtn.addEventListener('click', async () => {
             const address = startAddressInput.value.trim();
             if (address) {
                 showMessage('מחפש נקודת התחלה...', 'info');
                 try {
                     const fullAddress = getFullAddress(startAddressInput);
-                    const locData = await geocodeAddress(fullAddress, detectLanguage(fullAddress));
+                    const locData = await geocodeAddressWithFallback(fullAddress, detectLanguage(fullAddress));
                     if (locData) {
-                        startLocation = locData;
+                        startLocation = decorateLocationResult(locData);
                         updateFixedLocationDisplays();
                         startAddressInput.value = '';
-                        showMessage('נקודת התחלה נבחרה.', 'success');
+                        showMessage(locData.wasNumberStripped ? 'נקודת התחלה נבחרה ללא מספר.' : 'נקודת התחלה נבחרה.', 'success');
                         clearRouteDisplay();
                     } else {
                         showMessage('לא נמצאה כתובת עבור נקודת ההתחלה.', 'error');
@@ -560,12 +610,12 @@
                 showMessage('מחפש נקודת סיום...', 'info');
                 try {
                     const fullAddress = getFullAddress(endAddressInput);
-                    const locData = await geocodeAddress(fullAddress, detectLanguage(fullAddress));
+                    const locData = await geocodeAddressWithFallback(fullAddress, detectLanguage(fullAddress));
                     if (locData) {
-                        endLocation = locData;
+                        endLocation = decorateLocationResult(locData);
                         updateFixedLocationDisplays();
                         endAddressInput.value = '';
-                        showMessage('נקודת סיום נבחרה.', 'success');
+                        showMessage(locData.wasNumberStripped ? 'נקודת סיום נבחרה ללא מספר.' : 'נקודת סיום נבחרה.', 'success');
                         clearRouteDisplay();
                     } else {
                         showMessage('לא נמצאה כתובת עבור נקודת הסיום.', 'error');
@@ -592,11 +642,11 @@
                 showMessage('מחפש עצירת ביניים...', 'info');
                 try {
                     const fullAddress = getFullAddress(intermediateAddressInput);
-                    const locData = await geocodeAddress(fullAddress, detectLanguage(fullAddress));
+                    const locData = await geocodeAddressWithFallback(fullAddress, detectLanguage(fullAddress));
                     if (locData) {
-                        addIntermediateLocation(locData);
+                        addIntermediateLocation(decorateLocationResult(locData));
                         intermediateAddressInput.value = '';
-                        showMessage('עצירת ביניים נוספה.', 'success');
+                        showMessage(locData.wasNumberStripped ? 'עצירת ביניים נוספה ללא מספר.' : 'עצירת ביניים נוספה.', 'success');
                     } else {
                         showMessage('לא נמצאה כתובת עבור החיפוש.', 'error');
                     }
