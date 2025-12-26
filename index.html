@@ -371,21 +371,33 @@
             currentEndLocationDiv.append(' ', endLocation ? endLocation.address : 'לא הוגדר');
         }
 
+        function buildGeocodeFailureMessage(error) {
+            const baseMessage = error instanceof Error && error.message ? error.message : 'שגיאה בחיפוש הכתובת. נסה שוב.';
+            if (window.location.protocol === 'file:') {
+                return `${baseMessage} אם פתחת את הקובץ מקומית, הפעל שרת מקומי או השתמש בדמו המקוון.`;
+            }
+            return baseMessage;
+        }
+
         // Event listener for setting start location
         setStartLocationBtn.addEventListener('click', async () => {
             const address = startAddressInput.value.trim();
             if (address) {
                 showMessage('מחפש כתובת לנקודת התחלה...', 'info');
-                const fullAddress = getFullAddress(startAddressInput);
-                const locData = await geocodeAddress(fullAddress, detectLanguage(fullAddress));
-                if (locData) {
-                    startLocation = locData;
-                    updateFixedLocationDisplays(); // Update the text display
-                    startAddressInput.value = '';
-                    showMessage('נקודת התחלה הוגדרה!', 'info');
-                    clearRouteDisplay(); // Clear route if locations change
-                } else {
-                    showMessage('לא נמצאה כתובת עבור נקודת ההתחלה.', 'error');
+                try {
+                    const fullAddress = getFullAddress(startAddressInput);
+                    const locData = await geocodeAddress(fullAddress, detectLanguage(fullAddress));
+                    if (locData) {
+                        startLocation = locData;
+                        updateFixedLocationDisplays(); // Update the text display
+                        startAddressInput.value = '';
+                        showMessage('נקודת התחלה הוגדרה!', 'info');
+                        clearRouteDisplay(); // Clear route if locations change
+                    } else {
+                        showMessage('לא נמצאה כתובת עבור נקודת ההתחלה.', 'error');
+                    }
+                } catch (error) {
+                    showMessage(buildGeocodeFailureMessage(error), 'error');
                 }
             } else {
                 showMessage('אנא הזן כתובת לנקודת ההתחלה.', 'error');
@@ -405,16 +417,20 @@
             const address = endAddressInput.value.trim();
             if (address) {
                 showMessage('מחפש כתובת לנקודת סיום...', 'info');
-                const fullAddress = getFullAddress(endAddressInput);
-                const locData = await geocodeAddress(fullAddress, detectLanguage(fullAddress));
-                if (locData) {
-                    endLocation = locData;
-                    updateFixedLocationDisplays(); // Update the text display
-                    endAddressInput.value = '';
-                    showMessage('נקודת סיום הוגדרה!', 'info');
-                    clearRouteDisplay(); // Clear route if locations change
-                } else {
-                    showMessage('לא נמצאה כתובת עבור נקודת הסיום.', 'error');
+                try {
+                    const fullAddress = getFullAddress(endAddressInput);
+                    const locData = await geocodeAddress(fullAddress, detectLanguage(fullAddress));
+                    if (locData) {
+                        endLocation = locData;
+                        updateFixedLocationDisplays(); // Update the text display
+                        endAddressInput.value = '';
+                        showMessage('נקודת סיום הוגדרה!', 'info');
+                        clearRouteDisplay(); // Clear route if locations change
+                    } else {
+                        showMessage('לא נמצאה כתובת עבור נקודת הסיום.', 'error');
+                    }
+                } catch (error) {
+                    showMessage(buildGeocodeFailureMessage(error), 'error');
                 }
             } else {
                 showMessage('אנא הזן כתובת לנקודת הסיום.', 'error');
@@ -434,14 +450,18 @@
             const address = intermediateAddressInput.value.trim();
             if (address) {
                 showMessage('מחפש כתובת למיקום ביניים...', 'info');
-                const fullAddress = getFullAddress(intermediateAddressInput);
-                const locData = await geocodeAddress(fullAddress, detectLanguage(fullAddress));
-                if (locData) {
-                    addIntermediateLocation(locData);
-                    intermediateAddressInput.value = ''; // Clear input field
-                    showMessage('מיקום ביניים נוסף!', 'info');
-                } else {
-                    showMessage('לא נמצאה כתובת עבור החיפוש.', 'error');
+                try {
+                    const fullAddress = getFullAddress(intermediateAddressInput);
+                    const locData = await geocodeAddress(fullAddress, detectLanguage(fullAddress));
+                    if (locData) {
+                        addIntermediateLocation(locData);
+                        intermediateAddressInput.value = ''; // Clear input field
+                        showMessage('מיקום ביניים נוסף!', 'info');
+                    } else {
+                        showMessage('לא נמצאה כתובת עבור החיפוש.', 'error');
+                    }
+                } catch (error) {
+                    showMessage(buildGeocodeFailureMessage(error), 'error');
                 }
             } else {
                 showMessage('אנא הזן כתובת לחיפוש.', 'error');
