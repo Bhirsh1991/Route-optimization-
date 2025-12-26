@@ -949,31 +949,6 @@
 
         openInGoogleMapsBtn.addEventListener('click', openInGoogleMaps);
 
-        savedRoutesToggleBtn.addEventListener('click', openSavedRoutesPanel);
-        openSavedRoutesPanelBtn.addEventListener('click', openSavedRoutesPanel);
-        closeSavedRoutesPanelBtn.addEventListener('click', closeSavedRoutesPanel);
-        savedRoutesPanel.addEventListener('click', (event) => {
-            if (event.target.matches('[data-saved-routes-close]')) {
-                closeSavedRoutesPanel();
-            }
-        });
-
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./service-worker.js').catch((error) => {
-                    console.warn('Service worker registration failed:', error);
-                });
-            });
-        }
-
-        updateIntermediateLocationsList();
-        updateFixedLocationDisplays();
-        updateSavedRoutesList();
-        clearRouteDisplay();
-        setActiveStep(1);
-    </script>
-</body>
-</html>
         function openSavedRoutesPanel() {
             savedRoutesPanel.classList.remove('hidden');
             savedRoutesPanel.setAttribute('aria-hidden', 'false');
@@ -1003,3 +978,29 @@
                 </div>
             `;
         }
+
+        savedRoutesToggleBtn.addEventListener('click', openSavedRoutesPanel);
+        openSavedRoutesPanelBtn.addEventListener('click', openSavedRoutesPanel);
+        closeSavedRoutesPanelBtn.addEventListener('click', closeSavedRoutesPanel);
+        savedRoutesPanel.addEventListener('click', (event) => {
+            if (event.target.matches('[data-saved-routes-close]')) {
+                closeSavedRoutesPanel();
+            }
+        });
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js').catch((error) => {
+                    console.warn('Service worker registration failed:', error);
+                });
+            });
+        }
+
+        updateIntermediateLocationsList();
+        updateFixedLocationDisplays();
+        updateSavedRoutesList();
+        clearRouteDisplay();
+        setActiveStep(1);
+    </script>
+</body>
+</html>
