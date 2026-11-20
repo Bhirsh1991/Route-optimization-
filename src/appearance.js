@@ -46,6 +46,7 @@
   document.addEventListener('DOMContentLoaded', () => {
     const dialog = document.getElementById('appearanceDialog');
     const opener = document.getElementById('appearanceButton');
+    if (!dialog || !opener) return;
     opener.addEventListener('click', () => dialog.showModal());
     document.getElementById('closeAppearance').addEventListener('click', () => dialog.close());
     dialog.addEventListener('close', () => opener.focus());

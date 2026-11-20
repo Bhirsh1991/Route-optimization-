@@ -15,6 +15,12 @@ A simple web application for planning an optimal travel route.
 
 For numbered addresses in Netanya the planner cross-checks map pins against a local city extract. When records disagree, it can show multiple choices for inspection. The extract is downloaded on demand. [Data source, date and attribution](data/README.md)
 
+## Plan from ChatGPT or Gemini
+
+Open the [mobile setup guide](https://bhirsh1991.github.io/Route-optimization-/ai/) for a copyable chat instruction and optional skill downloads. The instruction lets a chat turn a delivery list into an editable planner link. It accepts 2–25 addresses with optional fixed endpoints. The addresses travel in the URL fragment and are visible to anyone who gets the link. The planner waits for the user to confirm before searching or applying the new route.
+
+With the skill installed, a chat that can execute the bundled JavaScript and retrieve an OSRM driving-time table can also return a calculated order. The skill uses the same numbered-address reference for Netanya and the same optimizer as the website. Missing house numbers, ambiguous matches and unavailable tools lead to review in the browser. Maps and Waze are available after calculation there.
+
 ## Interface Highlights
 
 - Plan a trip in **תכנון** and follow the optimized stop sequence in **בדרך**. The WhatsApp importer is at the top of the planning screen.
@@ -32,6 +38,8 @@ The app includes a service worker and manifest so it can be installed as a PWA.
 ## Development
 
 The published files are static. The page uses vanilla JavaScript and a local Tailwind stylesheet. Run `npm run build` after changing HTML, scripts or assets and commit the generated `assets/app.css` and `service-worker.js`. The build refreshes the offline shell revision.
+
+Run `python scripts/build-ai-skill.py` after changing the skill, its data or its shared routing code. Commit both generated ZIPs in `ai/`.
 
 ## CI
 

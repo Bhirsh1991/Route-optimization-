@@ -447,6 +447,13 @@ input:not([type="checkbox"]), textarea {
 textarea { min-height:100px; resize:vertical; }
 .dialog-actions { display:flex; align-items:center; gap:8px; margin-top:16px; }
 .dialog-actions > * { flex:1; }
+#aiImportDialog .sheet-head { position:sticky; top:-1px; z-index:1; background:var(--surface); }
+#aiImportRows { padding:0; margin:12px 0; list-style:none; }
+#aiImportRows label { margin-top:10px; }
+#aiImportRun { margin-top:8px; }
+.ai-choices { color:var(--muted); font-size:.85rem; overflow-wrap:anywhere; }
+.ai-choices:not(:empty) { margin-top:6px; }
+.ai-choices button { width:100%; margin-bottom:5px; text-align:start; white-space:normal; }
 .dialog .sheet-head { padding:0; }
 .dialog .review { list-style:decimal; padding-inline:30px 12px; padding-block:5px; margin-top:10px; border-radius:10px; background:var(--current-surface); }
 .dialog .review li { padding:4px 0; }

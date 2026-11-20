@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <meta name="theme-color" content="#f3f6fc">
+    <meta name="referrer" content="no-referrer">
+    <title>מסלולים | תכנון דרך ChatGPT או Gemini</title>
+    <link rel="icon" href="../assets/icon-192.png">
+    <link rel="stylesheet" href="../assets/planner.css">
+    <script src="../src/appearance.js"></script>
+    <style>
+        .guide { padding-block: 22px; }
+        .guide h1 { font-size: clamp(1.7rem, 6.2vw, 2.3rem); }
+        .guide header p, .guide section > p { margin-top: .6rem; }
+        .guide .sheet { margin-top: 1rem; padding: 1rem; }
+        .guide h2 { font-size: 1.1rem; }
+        .guide a { color: var(--accent); text-underline-offset: .15em; }
+        .guide textarea { margin-block: .6rem; font-size: .94rem; }
+        .guide summary { cursor: pointer; font-weight: 650; padding-block: .5rem; }
+        .guide details { border-block-start: 1px solid var(--line); margin-top: .5rem; padding-block: .3rem; }
+        .guide details p { margin-block: .3rem .75rem; }
+        .guide .actions { display: flex; flex-wrap: wrap; gap: .4rem 1rem; align-items: center; }
+        .guide .actions a, .app > header a { min-height: 44px; display: inline-flex; align-items: center; }
+        .guide .actions a { font-weight: 550; }
+        .guide .actions .primary { width: auto; }
+        #copyStatus { font-size: .86rem; }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <header class="topbar"><div class="brand"><span class="brandmark" aria-hidden="true"></span><strong>מסלולים</strong></div><a class="text-button" href="../">חזרה לתכנון</a></header>
+        <main class="guide">
+            <header>
+                <h1>מהצ׳אט למסלול</h1>
+                <p>שלחו את רשימת הכתובות ל־ChatGPT או ל־Gemini. תקבלו קישור שפותח אותה ב„מסלולים”, כולל נקודות היציאה והסיום שביקשתם.</p>
+            </header>
+            <section class="sheet" aria-labelledby="quick">
+                <h2 id="quick">שימוש מהטלפון בלי התקנה</h2>
+                <p>העתיקו את ההוראה, הדביקו אותה בצ׳אט והוסיפו מתחתיה את הרשימה. כדאי לציין עיר ונקודות קבועות כשיש כאלה.</p>
+                <label class="sr-only" for="prompt">הוראה להדבקה בצ׳אט</label>
+                <textarea id="prompt" rows="4" readonly>הכן לי מסלול בעזרת אתר „מסלולים”. חלץ רק עיר, רחוב ומספר בית מכל עצירה. שמור על כל התחנות ועל יציאה וסיום אם ציינתי אותם. השמט שמות מקבלים, טלפונים, דירות, קומות והערות. אם יש לך את כלי route-planner של האתר וזמני נסיעה אמיתיים, השתמש בהם והחזר סדר מחושב וקישור לאתר. אחרת החזר קישור לבדיקה באתר עם הרשימה בסדר המקורי. בנה את הקישור מהבסיס https://bhirsh1991.github.io/Route-optimization-/#route=1 והוסף אחרי הסולמית פרמטרים באמצעות URLSearchParams או קידוד URL מקביל: city לעיר, start ליציאה, stop לכל עצירת ביניים בנפרד, end לסיום. השמט שדות שלא נמסרו. כלול רק כתובות, וקודד כל ערך פעם אחת. אם יש פחות משתי נקודות או יותר מ־25, בקש הבהרה ושמור על כל העצירות.</textarea>
+                <div class="actions"><button type="button" class="primary" id="copyPrompt">העתקת ההוראה</button><a href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer">פתיחת ChatGPT ↗</a><a href="https://gemini.google.com/" target="_blank" rel="noopener noreferrer">פתיחת Gemini ↗</a></div>
+                <p id="copyStatus" role="status" class="muted"></p>
+            </section>
+            <section class="sheet" aria-labelledby="install">
+                <h2 id="install">חישוב בתוך הצ׳אט</h2>
+                <p>החבילה משתמשת במאגר הכתובות של נתניה ובאלגוריתם של האתר. אם כל הכתובות מזוהות בוודאות והצ׳אט יכול להריץ את הכלי ולקבל זמני נסיעה בכביש, תקבלו גם את סדר העצירות ואת משך הנסיעה המשוער. לכתובות מחוץ לכיסוי, לכמה התאמות או כשאחד הכלים חסר, המשיכו מהקישור לאתר.</p>
+                <details><summary>הגדרה ב־ChatGPT</summary>
+                    <p>הורידו את חבילת התוסף והעלו אותה ל־ChatGPT בדפדפן, אם בחשבון שלכם זמינה העלאת תוספים. מנהלי סביבת עבודה ימצאו את האפשרות ב־Admin console תחת Plugins, ואז Add ו־Upload plugin. לאחר ההתקנה אפשר לבחור את „מסלולים” בשיחה בטלפון. אם אפשרות ההעלאה לא מופיעה, השתמשו בהוראה שלמעלה.</p>
+                    <div class="actions"><a href="route-planner-chatgpt.zip" download>הורדת התוסף ל־ChatGPT</a><a href="https://help.openai.com/en/articles/20001256-plugins-in-chatgpt" target="_blank" rel="noopener noreferrer">מדריך OpenAI ↗</a></div>
+                </details>
+                <details><summary>הגדרה ב־Gemini</summary>
+                    <p>הורידו את חבילת ה־Skill. ב־Gemini בדפדפן במחשב פתחו את Customize ואז Skills, בחרו Create ואז Upload והעלו את קובץ ה־ZIP. לאחר השמירה אפשר לבקש מהטלפון להשתמש ב־route-planner. החישוב בצ׳אט תלוי בזמינות כלי נפרד לקריאת זמני הנסיעה.</p>
+                    <div class="actions"><a href="route-planner-gemini.zip" download>הורדת ה־Skill ל־Gemini</a><a href="https://support.google.com/gemini/answer/17094296?hl=en" target="_blank" rel="noopener noreferrer">מדריך Google ↗</a></div>
+                </details>
+            </section>
+            <section class="sheet" aria-labelledby="opening">
+                <h2 id="opening">כשפותחים את הקישור</h2>
+                <p>בקישור לאתר תוכלו לבדוק את הכתובות ולהתחיל בחישוב. כתובת עם כמה התאמות תוצג לבחירה. אחרי החישוב אפשר לנווט עצירה אחר עצירה ב־Waze. אם קיבלתם מסלול מחושב כבר בצ׳אט, קישור Google Maps שבתשובה יפתח את סדר העצירות ישירות.</p>
+                <p class="muted">הטקסט שאתם שולחים בצ׳אט נמסר לספק הצ׳אט. כל מי שמקבל את קישור המסלול יכול לקרוא את הכתובות שבו.</p>
+                <div class="actions"><a href="../#route=1&amp;city=נתניה&amp;start=הצורן%202&amp;stop=סמילנסקי%2013&amp;stop=האורזים%204&amp;end=הצורן%204">נסו מסלול לדוגמה בין ארבע כתובות בנתניה</a></div>
+            </section>
+        </main>
+    </div>
+    <script>
+        const promptField = document.getElementById('prompt');
+        document.getElementById('copyPrompt').addEventListener('click', async () => {
+            const feedback = document.getElementById('copyStatus');
+            try {
+                await navigator.clipboard.writeText(promptField.value);
+                feedback.textContent = 'ההוראה הועתקה. אפשר להדביק אותה בצ׳אט.';
+            } catch {
+                promptField.focus();
+                promptField.select();
+                feedback.textContent = 'ההוראה מסומנת. לחצו על „העתקה” בתפריט המכשיר.';
+            }
+        });
+    </script>
+</body>
+</html>
