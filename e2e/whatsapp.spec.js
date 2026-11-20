@@ -14,8 +14,7 @@ test('pasting previews locally and guided search waits for each address selectio
     }] });
   });
   await page.goto('./');
-  await page.locator('[data-step="3"] [data-step-toggle]').tap();
-  await page.locator('summary').filter({hasText: 'WhatsApp'}).tap();
+  await page.locator('#importToggle').tap();
   const list = page.locator('#importRows');
   const guide = page.locator('#guidedImportBtn');
   await page.locator('#importMessage').fill([

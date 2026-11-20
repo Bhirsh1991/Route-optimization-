@@ -17,7 +17,8 @@ For numbered addresses in Netanya the planner cross-checks map pins against a lo
 
 ## Interface Highlights
 
-- Light/dark mode updates the full layout, including the page background and theme color.
+- Plan a trip in **תכנון** and follow the optimized stop sequence in **בדרך**. The WhatsApp importer is at the top of the planning screen.
+- Open **עיצוב** to choose deep blue and sky, purple and plum, or orange and copper. Each palette supports light mode, dark mode, and the device setting. The browser remembers the palette and display mode on this device using local storage. Existing light/dark choices carry over.
 - Saved routes now live in a dedicated slide-over panel with preview details (start, end, and stops).
 
 ## PWA (Progressive Web App)

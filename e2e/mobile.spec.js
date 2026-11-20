@@ -20,6 +20,10 @@ async function mockSearch(page, candidates = query => [point(Number(query.split(
 async function selectAddress(page, field, query, choice = 0) {
   const searchButton = {start: 'setStartLocationBtn', end: 'setEndLocationBtn', intermediate: 'addIntermediateLocationBtn'}[field];
   const input = page.locator('#' + field + 'AddressInput');
+  if (!await input.isVisible()) {
+    const step = {start: 1, end: 2, intermediate: 3}[field];
+    await page.locator('[data-step="' + step + '"] [data-step-toggle]').tap();
+  }
   await input.fill(query);
   await page.locator('#' + searchButton).tap();
   await page.locator('#' + field + 'Suggestions button').nth(choice).tap();
@@ -83,8 +87,9 @@ test('five stops survive Google Maps export, draft restoration and named save/lo
   await expect(page.locator('#intermediateLocationsList .chip').first()).toContainText('Stop 1');
 
   await page.locator('#optimizeRouteBtn').tap();
-  const ordered = Array.from({length: 7}, (_, i) => (i + 1) + '. Stop ' + i);
-  await expect(page.locator('#optimizedRouteList li')).toHaveText(ordered);
+  const ordered = Array.from({length: 7}, (_, i) => 'Stop ' + i);
+  const orderedAddresses = page.locator('#optimizedRouteList li .address b');
+  await expect(orderedAddresses).toHaveText(ordered);
   expect(queries).toHaveLength(7);
   expect(requests).toHaveLength(1);
 
@@ -98,7 +103,7 @@ test('five stops survive Google Maps export, draft restoration and named save/lo
     return stops;
   }
   const primary = page.locator('#openInGoogleMapsBtn');
-  await expect(primary).toContainText('כל 7 הנקודות');
+  await expect(primary).toHaveAttribute('aria-label', /כל 7 הנקודות/);
   const exact = Array.from({length: 7}, (_, i) => point(i).lat + ',35');
   expect(await openMaps(primary)).toEqual(exact);
   const namesLink = page.getByRole('link', {name: 'פתיחת המסלול לפי שמות הכתובות', exact: true});
@@ -123,9 +128,10 @@ test('five stops survive Google Maps export, draft restoration and named save/lo
   expect(urls.map(mapsPoints)).toEqual([exact.slice(0, 5), named.slice(0, 5), exact.slice(4), named.slice(4)]);
 
   await page.reload();
-  await expect(page.locator('#optimizedRouteList li')).toHaveText(ordered);
+  await expect(orderedAddresses).toHaveText(ordered);
   await expect(page.locator('#openInGoogleMapsBtn')).toBeVisible();
   expect(mapsPoints(await primary.getAttribute('href'))).toEqual(exact);
+  await page.locator('#tab-plan').tap();
   await page.locator('[data-step="4"] [data-step-toggle]').tap();
   await page.locator('#saveRouteNameInput').fill('סידורים <יום חמישי>');
   await page.locator('#saveRouteBtn').tap();
@@ -146,7 +152,8 @@ test('five stops survive Google Maps export, draft restoration and named save/lo
   await expect(page.getByRole('dialog')).toContainText('סידורים <יום חמישי>');
   await page.getByRole('button', {name: 'טען', exact: true}).tap();
   await expect(page.getByRole('dialog')).toBeHidden();
-  await expect(page.locator('#optimizedRouteList li')).toHaveText(ordered);
+  await page.locator('#tab-drive').tap();
+  await expect(orderedAddresses).toHaveText(ordered);
 });
 
 test('an over-limit Maps route opens ordered segments with every stop in both formats', async ({page}) => {
@@ -228,7 +235,7 @@ test('a late route response cannot undo an edit, and a disconnected route has no
   await expect(page.locator('#openInGoogleMapsBtn')).toBeHidden();
   await expect(page.locator('#optimizedRouteList')).not.toContainText('Stop 2');
   await page.locator('#optimizeRouteBtn').tap();
-  await expect(page.locator('#optimizedRouteList')).toContainText('אין מסלול נסיעה');
+  await expect(page.locator('#calculationStatus')).toContainText('אין מסלול נסיעה');
   await expect(page.locator('#openInGoogleMapsBtn')).toBeHidden();
 });
 
@@ -246,8 +253,7 @@ test('WhatsApp stays local through preview, then uses the selected Hebrew addres
     return route.fulfill({json: roadMatrix(route.request().url())});
   });
   await page.goto('./');
-  await page.locator('[data-step="3"] [data-step-toggle]').tap();
-  await page.locator('summary').filter({hasText: 'WhatsApp'}).tap();
+  await page.locator('#importToggle').tap();
   await page.locator('#importMessage').fill('שם: ישראל ישראלי\nטלפון: 050-1234567\nכתובת: ' + query);
   await page.locator('#previewMessageBtn').tap();
   await expect(page.locator('#importRows input')).toHaveValue(query);

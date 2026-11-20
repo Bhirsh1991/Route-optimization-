@@ -1,4 +1,4 @@
-const {linkFor, destinations} = require('../src/waze');
+const {linkFor, destinations, restoreProgress} = require('../src/waze');
 
 const point = i => ({lat: 30 + i / 100, lng: 34, address: 'Stop ' + i});
 const [start, first, second, end] = [0, 1, 2, 3].map(point);
@@ -19,4 +19,12 @@ test('Waze deep links include only the selected coordinates and navigation flag'
   expect(Object.fromEntries(url.searchParams)).toEqual({ll: '30.01,34', navigate: 'yes'});
   expect(linkFor({lat: NaN, lng: 34})).toBeNull();
   expect(linkFor({lat: 15, lng: 181})).toBeNull();
+});
+
+test('old drafts retain their selected Waze stop, and finished journeys must end on the final one', () => {
+  expect(restoreProgress({wazeStopIndex: 1}, 3)).toEqual({wazeStopIndex:1, wazeLaunched:false, wazeFinished:false});
+  expect(restoreProgress({wazeStopIndex: 90, wazeFinished:true}, 3).wazeStopIndex).toBe(0);
+  expect(restoreProgress({wazeStopIndex: 1, wazeLaunched:true, wazeFinished:true}, 3))
+    .toEqual({wazeStopIndex:1, wazeLaunched:true, wazeFinished:false});
+  expect(restoreProgress({wazeStopIndex: 2, wazeFinished:true}, 3).wazeFinished).toBe(true);
 });

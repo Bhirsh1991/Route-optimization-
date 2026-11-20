@@ -14,6 +14,7 @@ test('distant address matches can be checked on the map before choosing a neighb
     ];
   });
   const input = page.locator('#startAddressInput');
+  await page.locator('[data-step="1"] [data-step-toggle]').tap();
   await input.fill('רחוב דוגמה 42');
   await page.locator('#setStartLocationBtn').tap();
   const results = page.locator('#startSuggestions');
