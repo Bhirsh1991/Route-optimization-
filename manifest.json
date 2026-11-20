@@ -1,11 +1,11 @@
 {
-  "name": "מארגן נסיעות אופטימלי",
-  "short_name": "מסלול חכם",
+  "name": "מסלולים — תכנון וניווט",
+  "short_name": "מסלולים",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#0f172a",
+  "background_color": "#f3f6fc",
+  "theme_color": "#f3f6fc",
   "icons": [
     {
       "src": "assets/icon-192.png",

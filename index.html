@@ -3,335 +3,205 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>מארגן נסיעות אופטימלי</title>
-    <meta name="theme-color" content="#0f172a">
+    <title>מסלולים — תכנון וניווט</title>
+    <meta name="color-scheme" content="light dark">
+    <meta name="theme-color" content="#f3f6fc">
     <link rel="icon" type="image/png" href="assets/icon-192.png">
     <link rel="apple-touch-icon" href="assets/icon-192.png">
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="assets/app.css">
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-
-        .step-card {
-            border: 1px solid #e2e8f0;
-        }
-
-        .step-card[data-complete="true"] .step-indicator {
-            background: #dcfce7;
-            color: #166534;
-            border-color: #86efac;
-        }
-
-        .step-card[data-complete="true"] .step-title {
-            color: #0f172a;
-        }
-
-        .step-card[data-active="true"] {
-            box-shadow: 0 12px 30px -25px rgba(15, 23, 42, 0.4);
-        }
-
-        .chip {
-            user-select: none;
-        }
-
-        .chip.dragging {
-            opacity: 0.6;
-        }
-
-        .stop-control {
-            min-width: 44px;
-            min-height: 44px;
-            border-radius: .65rem;
-        }
-
-        .stop-control:disabled {
-            opacity: .3;
-        }
-
-        .save-success {
-            animation: pulse-success 1.4s ease;
-        }
-
-        @keyframes pulse-success {
-            0% {
-                transform: scale(0.97);
-                opacity: 0.4;
-            }
-            40% {
-                transform: scale(1.02);
-                opacity: 1;
-            }
-            100% {
-                transform: scale(1);
-                opacity: 1;
-            }
-        }
-        .step-status {
-            max-width: 180px;
-            line-height: 1.4;
-            text-align: right;
-            white-space: normal;
-        }
-
-        @media (max-width: 640px) {
-            .step-status {
-                max-width: 140px;
-                font-size: 0.75rem;
-            }
-        }
-
-        .dark .step-card {
-            border-color: #334155;
-        }
-
-        .dark .step-card[data-complete="true"] .step-indicator {
-            background: #14532d;
-            color: #bbf7d0;
-            border-color: #166534;
-        }
-
-        .dark .step-card[data-complete="true"] .step-title {
-            color: #f8fafc;
-        }
-
-        .dark .step-card[data-active="true"] {
-            box-shadow: 0 12px 30px -25px rgba(15, 23, 42, 0.8);
-        }
-    </style>
+    <link rel="stylesheet" href="assets/planner.css">
+    <script src="src/appearance.js"></script>
 </head>
-<body class="bg-slate-50 dark:bg-slate-950 dark:text-slate-100 flex items-start sm:items-center justify-center min-h-screen p-4 transition-colors duration-300">
-    <div id="planner" class="bg-white dark:bg-slate-900 dark:border dark:border-slate-700 p-4 sm:p-8 rounded-2xl shadow-xl w-full max-w-3xl transition-colors">
-        <header class="mb-5 flex flex-wrap items-center justify-between gap-2">
-            <button id="themeToggleBtn" class="min-h-[44px] flex items-center gap-2 bg-white text-slate-700 border border-slate-200 rounded-full px-3 py-2 text-sm hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-100 dark:border-slate-700 dark:hover:bg-slate-700">
-                <span id="themeToggleIcon" aria-hidden="true">🌙</span>
-                <span id="themeToggleLabel">מצב כהה</span>
-            </button>
-            <button id="savedRoutesToggleBtn" aria-haspopup="dialog" class="hidden min-h-[44px] items-center gap-2 bg-white text-slate-700 border border-slate-200 rounded-full px-3 py-2 text-sm hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-100 dark:border-slate-700 dark:hover:bg-slate-700">
-                📚 מסלולים שמורים
-                <span id="savedRoutesCount" class="inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 text-xs font-semibold rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-100">0</span>
-            </button>
+<body>
+    <div id="planner" class="app">
+        <header class="topbar">
+            <div class="brand"><span class="brandmark" aria-hidden="true"></span><strong>מסלולים</strong></div>
+            <div class="header-tools">
+                <button type="button" id="savedRoutesToggleBtn" class="header-tool" aria-haspopup="dialog">שמורים <span id="savedRoutesCount"></span></button>
+                <button type="button" id="appearanceButton" class="header-tool" aria-haspopup="dialog"><span class="theme-dot" aria-hidden="true"></span>עיצוב</button>
+            </div>
         </header>
-        <div class="flex flex-col items-center mb-6 text-center">
-            <img src="logo-small.webp" width="64" height="64" alt="" class="w-16 h-16 rounded-full object-cover shadow-sm">
-            <h1 class="text-2xl sm:text-3xl font-bold mt-4 text-slate-900 dark:text-slate-100">מארגן נסיעות אופטימלי</h1>
-            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">בונים מסלול חכם בצעדים פשוטים</p>
-        </div>
-
-        <section class="mb-4 rounded-2xl border border-slate-200 p-4 dark:border-slate-700" aria-labelledby="searchAreaTitle">
-            <h2 id="searchAreaTitle" class="font-semibold">אזור החיפוש</h2>
-            <div class="mt-2 flex flex-wrap items-end gap-2">
-                <label class="min-w-0 flex-1 text-sm" for="searchCity">עיר לכל הכתובות (רשות)
-                    <input id="searchCity" type="text" dir="auto" autocomplete="off" placeholder="לדוגמה: נתניה"
-                           class="mt-1 block w-full rounded-xl border border-slate-200 px-3 py-2.5 text-base dark:border-slate-600 dark:bg-slate-900">
-                </label>
-                <button id="locateSearchArea" type="button" aria-describedby="searchAreaStatus" class="min-h-[44px] rounded-xl border border-indigo-300 px-3 py-2 text-sm font-semibold">שימוש במיקום שלי</button>
-            </div>
-            <p id="searchAreaStatus" aria-live="polite" class="mt-2 text-sm text-slate-600 dark:text-slate-300">בחיפוש לפי המיקום שלך, שירות הכתובות יקבל אזור משוער.</p>
-            <div class="mt-1 flex flex-wrap items-center justify-between gap-x-3">
-                <label class="inline-flex min-h-[44px] items-center gap-2 text-sm"><input type="checkbox" id="israelOnlySearch"> חיפוש בישראל בלבד</label>
-                <button id="clearSearchArea" type="button" class="hidden min-h-[44px] px-2 text-sm underline">נקה אזור חיפוש</button>
-            </div>
-        </section>
-
-        <div id="messageBox" class="mt-4 p-3 rounded-xl hidden" role="status"></div>
-        <p id="draftWarning" class="hidden mb-3 text-sm text-rose-700 dark:text-rose-300" role="status">הדפדפן לא הצליח לשמור את הטיוטה במכשיר. רענון הדף עלול למחוק אותה.</p>
-
-        <div class="space-y-4">
-            <section class="step-card rounded-2xl bg-white dark:bg-slate-800" data-step="1" data-active="true" data-complete="false">
-                <button type="button" class="w-full flex items-center justify-between p-4 sm:p-5" data-step-toggle>
-                    <div class="flex items-center gap-3">
-                        <span class="step-indicator w-9 h-9 rounded-full border border-slate-200 bg-slate-100 dark:border-slate-600 dark:bg-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-200 font-semibold">1</span>
-                        <div>
-                            <p class="step-title text-lg font-semibold text-slate-700 dark:text-slate-100">נקודת התחלה</p>
-                            <p class="text-sm text-slate-400 dark:text-slate-400">בחר נקודת יציאה למסלול</p>
-                        </div>
-                    </div>
-                    <span id="startStepStatus" class="step-status text-sm text-slate-500 dark:text-slate-300">⏳ עדיין לא נבחרה</span>
+        <nav class="tabs" role="tablist" aria-label="מצב המסלול">
+            <button type="button" id="tab-plan" role="tab" aria-selected="true" aria-controls="plan"><span class="tab-icon" data-icon="plan" aria-hidden="true"></span>תכנון</button>
+            <button type="button" id="tab-drive" role="tab" aria-selected="false" aria-controls="drive" tabindex="-1"><span class="tab-icon" data-icon="drive" aria-hidden="true"></span>בדרך</button>
+        </nav>
+        <main id="plannerMain">
+            <div id="messageBox" class="hidden" role="status"></div>
+            <p id="draftWarning" class="hidden" role="status">לא ניתן לשמור את הטיוטה בדפדפן הזה. רענון הדף עלול למחוק אותה.</p>
+        <section class="screen" id="plan" role="tabpanel" aria-labelledby="tab-plan">
+            <div class="heading">
+                <h1>תכנון מסלול</h1>
+                <button type="button" id="areaButton" class="city" aria-expanded="false" aria-controls="areaEditor">
+                    <span class="inline-icon" data-icon="pin" aria-hidden="true"></span><span id="areaLabel">אזור חיפוש</span>
                 </button>
-                <div class="step-body px-4 pb-5 sm:px-5">
-                    <div class="bg-slate-50 dark:bg-slate-800/70 rounded-xl p-4 sm:p-5">
-                        <label for="startAddressInput" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-3">כתובת התחלה</label>
-                        <div class="flex flex-col sm:flex-row gap-3">
-                            <input type="text" id="startAddressInput" enterkeyhint="search" placeholder="הזן כתובת או מקום"
-                                   class="shadow-sm border border-slate-200 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 rounded-xl w-full py-2.5 px-4 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-400">
-                            <button id="setStartLocationBtn"
-                                    class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-5 rounded-xl whitespace-nowrap">
-                                חפש כתובת
-                            </button>
-                        </div>
-                        <div id="startSuggestions" aria-label="תוצאות חיפוש לנקודת ההתחלה" aria-live="polite"></div>
-                        <div id="currentStartLocation" class="mt-3 text-sm text-slate-600 dark:text-slate-300"></div>
-                        <button id="clearStartLocationBtn" class="mt-3 text-xs text-slate-400 hover:text-slate-600 dark:text-slate-400 dark:hover:text-slate-200 underline">נקה בחירה</button>
-                    </div>
+            </div>
+            <p class="subline" id="planCount"></p>
+            <section id="areaEditor" class="sheet plan-editor" aria-labelledby="searchAreaTitle" hidden>
+                <h2 id="searchAreaTitle">אזור החיפוש</h2>
+                <label for="searchCity">עיר לכל הכתובות (רשות)</label>
+                <input id="searchCity" type="text" dir="auto" autocomplete="off" placeholder="לדוגמה: נתניה">
+                <button id="locateSearchArea" type="button" class="secondary" aria-describedby="searchAreaStatus">שימוש במיקום שלי</button>
+                <p id="searchAreaStatus" aria-live="polite" class="muted">בחיפוש לפי המיקום שלך, שירות הכתובות יקבל אזור משוער.</p>
+                <div class="plan-actions">
+                    <label class="country-choice"><input type="checkbox" id="israelOnlySearch"> חיפוש בישראל בלבד</label>
+                    <button id="clearSearchArea" type="button" class="text-button hidden">נקה אזור חיפוש</button>
+                    <button id="closeArea" type="button" class="text-button">סיום</button>
                 </div>
             </section>
-
-            <section class="step-card rounded-2xl bg-white dark:bg-slate-800" data-step="2" data-active="false" data-complete="false">
-                <button type="button" class="w-full flex items-center justify-between p-4 sm:p-5" data-step-toggle>
-                    <div class="flex items-center gap-3">
-                        <span class="step-indicator w-9 h-9 rounded-full border border-slate-200 bg-slate-100 dark:border-slate-600 dark:bg-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-200 font-semibold">2</span>
-                        <div>
-                            <p class="step-title text-lg font-semibold text-slate-700 dark:text-slate-100">נקודת סיום</p>
-                            <p class="text-sm text-slate-400 dark:text-slate-400">בחר יעד למסלול</p>
-                        </div>
+            <details id="importSheet" class="import-sheet">
+                <summary id="importToggle" class="import-card">
+                    <span><strong class="feature-title">הדבקה מ־<bdi>WhatsApp</bdi></strong><span class="feature-description">הוספת כמה כתובות בבת אחת</span></span>
+                    <span class="action-icon" aria-hidden="true">＋</span>
+                </summary>
+                <div class="sheet plan-editor">
+                    <label for="importMessage">הודעות להדבקה</label>
+                    <textarea id="importMessage" rows="4" placeholder="רחוב ומספר בית" aria-describedby="importPrivacy"></textarea>
+                    <p id="importPrivacy" class="muted">פרטי המסירה נשארים במכשיר. רק הכתובת שתבחרו לחפש תישלח לשירות המפות.</p>
+                    <div class="plan-actions">
+                        <button type="button" id="previewMessageBtn" class="secondary">הצג כתובות לבדיקה</button>
+                        <button type="button" id="guidedImportBtn" class="primary hidden">התחל חיפוש ברשימה</button>
                     </div>
-                    <span id="endStepStatus" class="step-status text-sm text-slate-500 dark:text-slate-300">⏳ עדיין לא נבחרה</span>
-                </button>
-                <div class="step-body hidden px-4 pb-5 sm:px-5">
-                    <div class="bg-slate-50 dark:bg-slate-800/70 rounded-xl p-4 sm:p-5">
-                        <label for="endAddressInput" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-3">כתובת סיום</label>
-                        <div class="flex flex-col sm:flex-row gap-3">
-                            <input type="text" id="endAddressInput" enterkeyhint="search" placeholder="הזן כתובת או מקום"
-                                   class="shadow-sm border border-slate-200 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 rounded-xl w-full py-2.5 px-4 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-400">
-                            <button id="setEndLocationBtn"
-                                    class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-5 rounded-xl whitespace-nowrap">
-                                חפש כתובת
-                            </button>
-                        </div>
-                        <div id="endSuggestions" aria-label="תוצאות חיפוש לנקודת הסיום" aria-live="polite"></div>
-                        <div id="currentEndLocation" class="mt-3 text-sm text-slate-600 dark:text-slate-300"></div>
-                        <button id="clearEndLocationBtn" class="mt-3 text-xs text-slate-400 hover:text-slate-600 dark:text-slate-400 dark:hover:text-slate-200 underline">נקה בחירה</button>
-                    </div>
+                    <p id="importStatus" class="muted" role="status"></p>
+                    <div id="importRows"></div>
                 </div>
-            </section>
-
-            <section class="step-card rounded-2xl bg-white dark:bg-slate-800" data-step="3" data-active="false" data-complete="false">
-                <button type="button" class="w-full flex items-center justify-between p-4 sm:p-5" data-step-toggle>
-                    <div class="flex items-center gap-3">
-                        <span class="step-indicator w-9 h-9 rounded-full border border-slate-200 bg-slate-100 dark:border-slate-600 dark:bg-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-200 font-semibold">3</span>
-                        <div>
-                            <p class="step-title text-lg font-semibold text-slate-700 dark:text-slate-100">עצירות ביניים</p>
-                            <p class="text-sm text-slate-400 dark:text-slate-400">אופציונלי · הוסף נקודות בדרך</p>
-                        </div>
-                    </div>
-                    <span id="intermediateStepStatus" class="step-status text-sm text-slate-500 dark:text-slate-300">➕ הוספה חופשית</span>
-                </button>
-                <div class="step-body hidden px-4 pb-5 sm:px-5">
-                    <div class="bg-slate-50 dark:bg-slate-800/70 rounded-xl p-4 sm:p-5 space-y-4">
-                        <div>
-                            <label for="intermediateAddressInput" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-3">הוסף עצירת ביניים</label>
-                            <div class="flex flex-col sm:flex-row gap-3">
-                                <input type="text" id="intermediateAddressInput" enterkeyhint="search" placeholder="לדוגמה: רחוב הרצל 1, תל אביב"
-                                       class="shadow-sm border border-slate-200 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 rounded-xl w-full py-2.5 px-4 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-400">
-                                <button id="addIntermediateLocationBtn"
-                                        class="bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 px-5 rounded-xl whitespace-nowrap">
-                                    חפש כתובת
-                                </button>
-                            </div>
-                        </div>
-                        <div id="intermediateSuggestions" aria-label="תוצאות חיפוש לעצירת ביניים" aria-live="polite"></div>
-                        <details class="rounded-xl border border-slate-200 dark:border-slate-600 p-3">
-                            <summary class="cursor-pointer py-2 font-semibold">ייבוא עצירות מהודעת WhatsApp</summary>
-                            <label for="importMessage" class="block text-sm mt-2">הדבק הודעה לחילוץ כתובות. השמות והטלפונים מוצגים במכשיר בלבד. רק כתובת שתאשר לחיפוש תישלח לשירות.</label>
-                            <textarea id="importMessage" rows="4" class="mt-2 w-full rounded-xl border border-slate-200 dark:border-slate-600 dark:bg-slate-900 px-3 py-2" placeholder="כתובת: הרצל 1, תל אביב"></textarea>
-                            <button type="button" id="previewMessageBtn" class="mt-2 rounded-xl bg-slate-900 text-white dark:bg-slate-700 px-4 py-2.5">הצג כתובות לבדיקה</button>
-                            <button type="button" id="guidedImportBtn" class="hidden mt-2 rounded-xl bg-indigo-600 text-white px-4 py-2.5">התחל חיפוש ברשימה</button>
-                            <p id="importStatus" class="text-sm mt-2" role="status"></p>
-                            <div id="importRows"></div>
-                        </details>
-                        <div>
-                            <div class="flex items-center justify-between">
-                                <p class="text-sm font-semibold text-slate-700 dark:text-slate-200">העצירות שלך</p>
-                            </div>
-                            <div id="intermediateLocationsList" class="mt-3 grid gap-2 min-h-[48px]" aria-live="polite"></div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <section class="step-card rounded-2xl bg-white dark:bg-slate-800" data-step="4" data-active="false" data-complete="false">
-                <button type="button" class="w-full flex items-center justify-between p-4 sm:p-5" data-step-toggle>
-                    <div class="flex items-center gap-3">
-                        <span class="step-indicator w-9 h-9 rounded-full border border-slate-200 bg-slate-100 dark:border-slate-600 dark:bg-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-200 font-semibold">4</span>
-                        <div>
-                            <p class="step-title text-lg font-semibold text-slate-700 dark:text-slate-100">שמירת מסלול</p>
-                            <p class="text-sm text-slate-400 dark:text-slate-400">שמור לשימוש חוזר במכשיר הזה</p>
-                        </div>
-                    </div>
-                    <span id="saveStepStatus" class="step-status text-sm text-slate-500 dark:text-slate-300">💾 עדיין לא נשמר</span>
-                </button>
-                <div class="step-body hidden px-4 pb-5 sm:px-5">
-                    <div class="bg-slate-50 dark:bg-slate-800/70 rounded-xl p-4 sm:p-5 space-y-4">
-                        <div>
-                            <label for="saveRouteNameInput" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-3">איך לקרוא למסלול?</label>
-                            <div class="flex flex-col sm:flex-row gap-3">
-                                <input type="text" id="saveRouteNameInput" placeholder="לדוגמה: מסלול לקניות"
-                                       class="shadow-sm border border-slate-200 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 rounded-xl w-full py-2.5 px-4 text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:focus:ring-emerald-400">
-                                <button id="saveRouteBtn"
-                                        class="bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-2.5 px-5 rounded-xl whitespace-nowrap">
-                                    ✔️ שמור מסלול
-                                </button>
-                            </div>
-                            <div id="saveSuccess" class="mt-3 text-sm text-emerald-700 bg-emerald-50 border border-emerald-100 dark:text-emerald-200 dark:bg-emerald-900/40 dark:border-emerald-700 rounded-xl px-3 py-2 hidden">
-                                ✅ נשמר בהצלחה!
-                            </div>
-                        </div>
-                        <div>
-                            <p class="text-sm font-semibold text-slate-700 dark:text-slate-200">ניהול מסלולים שמורים</p>
-                            <div class="mt-2 flex flex-col sm:flex-row sm:items-center gap-3">
-                                <button id="openSavedRoutesPanelBtn"
-                                        class="bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 px-5 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed">
-                                    📂 פתח חלונית מסלולים
-                                </button>
-                                <p class="text-xs text-slate-400 dark:text-slate-400">אם יש מסלול שמור, אפשר לפתוח את החלונית ולהציג פרטים.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-        </div>
-
-        <section class="mt-6 bg-gradient-to-r from-indigo-50 to-emerald-50 dark:from-slate-800 dark:to-slate-700 border border-indigo-100 dark:border-slate-700 rounded-2xl p-4 sm:p-5">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                    <h2 class="text-lg font-semibold text-slate-800 dark:text-slate-100">מוכנים לחשב מסלול?</h2>
-                    <p class="text-sm text-slate-500 dark:text-slate-300">נחשב את סדר העצירות לפי זמני הנסיעה בכביש.</p>
-                </div>
-                <button id="optimizeRouteBtn"
-                        class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-6 rounded-xl">
-                    ⚡ חשב מסלול
-                </button>
-            </div>
-            <div class="mt-4">
-                <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">מסלול מומלץ</h3>
-                <ol id="optimizedRouteList" class="bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 p-3 min-h-[80px]"></ol>
-            </div>
-            <a id="openInGoogleMapsBtn" target="_blank" rel="noopener noreferrer"
-                    class="inline-block text-center w-full sm:w-auto mt-4 bg-slate-900 hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600 text-white font-semibold py-2.5 px-5 rounded-xl hidden">
-                פתיחת המסלול ב-Google Maps
-            </a>
-            <div id="mapsOptions" class="hidden mt-2">
-                <a id="mapsAlternate" target="_blank" rel="noopener noreferrer"
-                   class="inline-flex min-h-[44px] items-center text-sm underline hidden"></a>
-                <p id="mapsFallbackNote" class="hidden text-xs text-slate-600 dark:text-slate-300"></p>
-                <details id="mapsLegs" class="mt-3 hidden">
-                    <summary class="cursor-pointer text-sm font-semibold">פתיחת כתובת אחת בכל פעם ב-Google Maps</summary>
-                    <p class="mt-2 text-sm">אם בתצוגה המקדימה באנדרואיד מופיעה רק העצירה הראשונה, פתחו את הנסיעות כאן לפי הסדר. בסיום כל נסיעה חזרו לכאן ולחצו על היעד הבא.</p>
-                    <div id="mapsLegLinks" class="mt-2 flex flex-col gap-2"></div>
-                </details>
-            </div>
-            <details id="mapsSegments" class="mt-3 hidden">
-                <summary class="cursor-pointer text-sm font-semibold">פתיחת המסלול במקטעים</summary>
-                <div id="mapsSegmentLinks" class="mt-2 flex flex-col gap-2"></div>
             </details>
-            <section id="wazeNavigation" aria-labelledby="wazeTitle" class="hidden mt-4 border-t border-slate-200 pt-4 dark:border-slate-600">
-                <h3 id="wazeTitle" class="font-semibold">ניווט ב-Waze</h3>
-                <p class="mt-1 text-sm">בסיום כל נסיעה חזרו לכאן כדי לפתוח את היעד הבא.</p>
-                <p data-waze-status class="my-2 font-medium" role="status"></p>
-                <div data-waze-links class="flex flex-wrap gap-2"></div>
-                <button data-waze-previous type="button" class="min-h-[44px] px-2 text-sm underline disabled:opacity-50">חזור ליעד הקודם</button>
+            <section class="sheet" aria-labelledby="endsTitle">
+                <div class="sheet-head"><h2 id="endsTitle">התחלה וסיום</h2></div>
+                <div class="step-card" data-step="1">
+                    <button type="button" class="field-row" data-step-toggle aria-expanded="false" aria-controls="startEditor">
+                        <span class="pin origin" aria-hidden="true"></span>
+                        <span class="field-text"><small class="field-tag">יציאה</small><b id="startStepStatus"></b></span>
+                        <span class="field-action">בחירה</span>
+                    </button>
+                    <div id="startEditor" class="step-body plan-editor hidden">
+                        <label for="startAddressInput">כתובת התחלה</label>
+                        <div class="input-actions">
+                            <input type="text" id="startAddressInput" dir="auto" enterkeyhint="search" placeholder="רחוב, מספר בית או מקום">
+                            <button id="setStartLocationBtn" class="primary" type="button">חפש כתובת</button>
+                        </div>
+                        <div id="startSuggestions" class="suggestions" aria-label="תוצאות חיפוש עבור כתובת התחלה" aria-live="polite"></div>
+                        <button id="clearStartLocationBtn" class="text-button" type="button" hidden>נקה בחירה</button>
+                    </div>
+                </div>
+                <div class="step-card" data-step="2">
+                    <button type="button" class="field-row" data-step-toggle aria-expanded="false" aria-controls="endEditor">
+                        <span class="pin endpoint" aria-hidden="true"></span>
+                        <span class="field-text"><small class="field-tag">סיום</small><b id="endStepStatus"></b></span>
+                        <span class="field-action">בחירה</span>
+                    </button>
+                    <div id="endEditor" class="step-body plan-editor hidden">
+                        <label for="endAddressInput">כתובת סיום</label>
+                        <div class="input-actions">
+                            <input type="text" id="endAddressInput" dir="auto" enterkeyhint="search" placeholder="רחוב, מספר בית או מקום">
+                            <button id="setEndLocationBtn" class="primary" type="button">חפש כתובת</button>
+                        </div>
+                        <div id="endSuggestions" class="suggestions" aria-label="תוצאות חיפוש עבור כתובת סיום" aria-live="polite"></div>
+                        <button id="clearEndLocationBtn" class="text-button" type="button" hidden>נקה בחירה</button>
+                    </div>
+                </div>
+            </section>
+            <section class="sheet step-card" data-step="3" aria-labelledby="stopsTitle">
+                <div class="sheet-head">
+                    <h2 id="stopsTitle">עצירות בדרך</h2>
+                    <button type="button" class="add-stop" data-step-toggle aria-expanded="false" aria-controls="stopEditor">＋ הוספה</button>
+                </div>
+                <div id="stopEditor" class="step-body plan-editor hidden">
+                    <label for="intermediateAddressInput">כתובת העצירה</label>
+                    <div class="input-actions">
+                        <input type="text" id="intermediateAddressInput" dir="auto" enterkeyhint="search" placeholder="רחוב, מספר בית או מקום">
+                        <button id="addIntermediateLocationBtn" class="primary" type="button">חפש כתובת</button>
+                    </div>
+                    <div id="intermediateSuggestions" class="suggestions" aria-label="תוצאות חיפוש לעצירת ביניים" aria-live="polite"></div>
+                </div>
+                <p id="intermediateStepStatus" class="plan-empty muted"></p>
+                <ol id="intermediateLocationsList" class="stoplist" aria-label="עצירות ביניים" aria-live="polite"></ol>
+            </section>
+            <button id="optimizeRouteBtn" class="primary wide" type="button">חשב מסלול <span aria-hidden="true">←</span></button>
+            <p id="calculationStatus" class="muted" role="status"></p>
+            <section class="sheet step-card" data-step="4">
+                <button type="button" class="sheet-head save-heading" data-step-toggle aria-expanded="false" aria-controls="saveEditor">
+                    <span class="step-title">שמירת מסלול</span><small id="saveStepStatus"></small>
+                </button>
+                <div id="saveEditor" class="step-body plan-editor hidden">
+                    <label for="saveRouteNameInput">שם המסלול</label>
+                    <div class="input-actions">
+                        <input type="text" id="saveRouteNameInput" placeholder="לדוגמה: חלוקה ביום חמישי">
+                        <button id="saveRouteBtn" class="primary" type="button">שמור מסלול</button>
+                    </div>
+                    <p id="saveSuccess" class="hidden muted" role="status">נשמר בהצלחה</p>
+                    <button id="openSavedRoutesPanelBtn" class="text-button" type="button" aria-haspopup="dialog">פתח מסלולים שמורים</button>
+                </div>
             </section>
         </section>
 
-        <div class="text-xs text-slate-400 dark:text-slate-500 mt-6 text-center">
+        <section class="screen" id="drive" role="tabpanel" aria-labelledby="tab-drive" hidden>
+            <div class="heading"><h1>בדרך</h1></div>
+            <p class="subline" id="driveSummary"></p>
+            <div class="sheet p-4" id="driveEmpty">
+                <p class="muted mb-3">אחרי חישוב המסלול יופיעו כאן היעד הבא וסדר העצירות.</p>
+                <button class="primary" type="button" data-go-plan>לתכנון המסלול</button>
+            </div>
+            <section id="wazeNavigation" class="trip-hero hidden" aria-label="ניווט ב־Waze">
+                <div class="hero-head"><span class="eyebrow" data-waze-role>היעד הנוכחי</span><span class="counter" data-waze-count></span></div>
+                <h2 data-waze-address></h2>
+                <p data-waze-locality></p>
+                <div class="progress" data-waze-progress aria-hidden="true"></div>
+                <div class="hero-actions" data-waze-links></div>
+                <p class="sr-only" data-waze-status role="status"></p>
+            </section>
+            <section class="sheet" id="driveItinerary" hidden>
+                <div class="sheet-head">
+                    <h2>סדר הנסיעה</h2>
+                    <a id="openInGoogleMapsBtn" target="_blank" rel="noopener noreferrer" class="text-button hidden"><bdi>Google Maps</bdi> <span aria-hidden="true">↗</span></a>
+                    <a id="driveMapSegmentsLink" href="#driveMaps" class="text-button" hidden>מקטעי <bdi>Google Maps</bdi></a>
+                </div>
+                <ol id="optimizedRouteList" class="route-list"></ol>
+            </section>
+            <section class="sheet p-4" id="driveMaps" hidden aria-labelledby="driveMapsTitle">
+                <h2 id="driveMapsTitle" class="mb-2 font-semibold">אפשרויות <bdi>Google Maps</bdi></h2>
+                <div id="mapsOptions" class="hidden">
+                    <a id="mapsAlternate" target="_blank" rel="noopener noreferrer" class="text-button hidden"></a>
+                    <p id="mapsFallbackNote" class="muted text-sm hidden"></p>
+                    <details id="mapsLegs" class="mt-2 hidden">
+                        <summary class="cursor-pointer py-2 font-semibold">פתיחת כתובת אחת בכל פעם ב-Google Maps</summary>
+                        <p class="mt-1 text-sm">אם באנדרואיד מופיעה רק העצירה הראשונה, פתחו את הנסיעות כאן לפי הסדר.</p>
+                        <div id="mapsLegLinks" class="mt-2 flex flex-col gap-2"></div>
+                    </details>
+                </div>
+                <details id="mapsSegments" class="mt-2 hidden">
+                    <summary class="cursor-pointer py-2 font-semibold">פתיחת המסלול במקטעים</summary>
+                    <div id="mapsSegmentLinks" class="mt-2 flex flex-col gap-2"></div>
+                </details>
+            </section>
+            <button data-waze-previous type="button" class="secondary wide" hidden>חזרה ליעד הקודם</button>
+        </section>
+
+        </main>
+        <footer class="credits">
             חיפוש באמצעות <a href="https://nominatim.org/" target="_blank" rel="noopener noreferrer" class="underline">Nominatim</a> ·
             ניתוב באמצעות <a href="https://project-osrm.org/" target="_blank" rel="noopener noreferrer" class="underline">OSRM</a> ·
             נתוני מפה © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" class="underline">תורמי OpenStreetMap</a> ·
             כתובות בנתניה: <a href="https://www.odata.org.il/dataset/ac1ae1fa-6d43-4685-8434-9953e950ca9b" target="_blank" rel="noopener noreferrer" class="underline">התמנון – מידע ציבורי לכל, CC BY</a>
-        </div>
+        </footer>
     </div>
+    <dialog class="dialog" id="appearanceDialog" aria-labelledby="appearanceTitle">
+        <div class="sheet-head"><h2 id="appearanceTitle">עיצוב</h2><button type="button" class="text-button" id="closeAppearance">סגירה</button></div>
+        <fieldset><legend>מצב תצוגה</legend>
+            <div class="appearance">
+                <button type="button" data-mode="light" aria-pressed="false">בהיר</button>
+                <button type="button" data-mode="dark" aria-pressed="false">כהה</button>
+                <button type="button" data-mode="auto" aria-pressed="true">לפי המכשיר</button>
+            </div>
+        </fieldset>
+        <fieldset><legend>ערכת צבעים</legend>
+            <div class="palette-options">
+                <button type="button" data-palette="blue" aria-pressed="true"><span class="swatch" aria-hidden="true"></span>כחול עמוק ותכלת</button>
+                <button type="button" data-palette="plum" aria-pressed="false"><span class="swatch" aria-hidden="true"></span>סגול ושזיף</button>
+                <button type="button" data-palette="copper" aria-pressed="false"><span class="swatch" aria-hidden="true"></span>כתום ונחושת</button>
+            </div>
+        </fieldset>
+    </dialog>
     <div id="savedRoutesPanel" class="fixed inset-0 z-40 hidden" role="dialog" aria-modal="true" aria-labelledby="savedRoutesTitle" aria-hidden="true">
         <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" data-saved-routes-close></div>
         <div class="absolute left-0 top-0 h-full w-full max-w-md overflow-y-auto bg-white dark:bg-slate-900 shadow-2xl p-6 flex flex-col gap-4">
@@ -372,19 +242,12 @@
         let saveSuccessTimeout;
         let panelOpener;
 
-        const THEME_STORAGE_KEY = 'preferredTheme';
-        const themeToggleBtn = document.getElementById('themeToggleBtn');
-        const themeToggleIcon = document.getElementById('themeToggleIcon');
-        const themeToggleLabel = document.getElementById('themeToggleLabel');
-
         const startAddressInput = document.getElementById('startAddressInput');
         const setStartLocationBtn = document.getElementById('setStartLocationBtn');
-        const currentStartLocationDiv = document.getElementById('currentStartLocation');
         const clearStartLocationBtn = document.getElementById('clearStartLocationBtn');
 
         const endAddressInput = document.getElementById('endAddressInput');
         const setEndLocationBtn = document.getElementById('setEndLocationBtn');
-        const currentEndLocationDiv = document.getElementById('currentEndLocation');
         const clearEndLocationBtn = document.getElementById('clearEndLocationBtn');
 
         const intermediateAddressInput = document.getElementById('intermediateAddressInput');
@@ -417,38 +280,36 @@
 
         const stepCards = Array.from(document.querySelectorAll('.step-card'));
 
-        function resolvePreferredTheme() {
-            try {
-                const stored = localStorage.getItem(THEME_STORAGE_KEY);
-                if (stored === 'dark' || stored === 'light') return stored;
-            } catch { /* Storage may be disabled. */ }
-            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                return 'dark';
+        let plannerView = 'plan';
+        const viewTabs = [...document.querySelectorAll('.tabs [role="tab"]')];
+
+        function setPlannerView(view, focusTab = true) {
+            plannerView = view === 'drive' ? 'drive' : 'plan';
+            for (const tab of viewTabs) {
+                const panel = document.getElementById(tab.getAttribute('aria-controls'));
+                const selected = panel.id === plannerView;
+                panel.hidden = !selected;
+                tab.setAttribute('aria-selected', String(selected));
+                tab.tabIndex = selected ? 0 : -1;
+                if (selected && focusTab) tab.focus({preventScroll: true});
             }
-            return 'light';
+            if (focusTab) window.scrollTo(0, 0);
+            saveDraft();
         }
 
-        const themeColorMeta = document.querySelector('meta[name="theme-color"]');
-
-        function applyTheme(theme) {
-            const isDark = theme === 'dark';
-            document.documentElement.classList.toggle('dark', isDark);
-            document.body.classList.toggle('dark', isDark);
-            themeToggleIcon.textContent = isDark ? '☀️' : '🌙';
-            themeToggleLabel.textContent = isDark ? 'מצב בהיר' : 'מצב כהה';
-            if (themeColorMeta) {
-                themeColorMeta.setAttribute('content', isDark ? '#020617' : '#f8fafc');
-            }
+        for (const tab of viewTabs) {
+            tab.addEventListener('click', () => setPlannerView(tab.getAttribute('aria-controls')));
+            tab.addEventListener('keydown', event => {
+                if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+                event.preventDefault();
+                const view = event.key === 'Home' ? 'plan' : event.key === 'End' ? 'drive'
+                    : plannerView === 'plan' ? 'drive' : 'plan';
+                setPlannerView(view);
+            });
         }
-
-        themeToggleBtn.addEventListener('click', () => {
-            const currentTheme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
-            const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            applyTheme(nextTheme);
-            try { localStorage.setItem(THEME_STORAGE_KEY, nextTheme); } catch { /* Session-only theme. */ }
-        });
-
-        applyTheme(resolvePreferredTheme());
+        for (const button of document.querySelectorAll('[data-go-plan]')) {
+            button.addEventListener('click', () => setPlannerView('plan'));
+        }
 
 
         const SAVED_ROUTES_KEY = 'savedRoutes';
@@ -473,57 +334,53 @@
             }, 4500);
         }
 
+        let editingStop = null;
+        function endStopEdit() {
+            if (!editingStop) return;
+            editingStop = null;
+            resetStopSearch();
+            intermediateAddressInput.value = '';
+            document.querySelector('label[for="intermediateAddressInput"]').textContent = 'כתובת העצירה';
+        }
+
         function setActiveStep(stepNumber) {
             activeStep = stepNumber;
-            stepCards.forEach((card) => {
-                const step = Number(card.dataset.step);
-                const isActive = step === stepNumber;
-                card.dataset.active = isActive ? 'true' : 'false';
-                card.querySelector('[data-step-toggle]').setAttribute('aria-expanded', String(isActive));
-                const body = card.querySelector('.step-body');
-                if (body) {
-                    body.classList.toggle('hidden', !isActive);
-                }
-            });
+            if (stepNumber !== 3) endStopEdit();
+            for (const card of stepCards) {
+                const open = Number(card.dataset.step) === stepNumber;
+                card.dataset.active = String(open);
+                card.querySelector('[data-step-toggle]').setAttribute('aria-expanded', String(open));
+                card.querySelector('.step-body').classList.toggle('hidden', !open);
+            }
             saveDraft();
         }
 
         function updateStepProgress() {
-            const startComplete = Boolean(startLocation);
-            const endComplete = Boolean(endLocation);
-            const intermediateComplete = intermediateLocations.length > 0;
             const current = {startLocation, intermediateLocations, endLocation};
-            const savedComplete = loadSavedRoutes().some(route => PlannerState.sameInputs(route, current));
-
-            stepCards.forEach((card) => {
-                const step = Number(card.dataset.step);
-                if (step === 1) {
-                    card.dataset.complete = startComplete ? 'true' : 'false';
-                }
-                if (step === 2) {
-                    card.dataset.complete = endComplete ? 'true' : 'false';
-                }
-                if (step === 3) {
-                    card.dataset.complete = intermediateComplete ? 'true' : 'false';
-                }
-                if (step === 4) {
-                    card.dataset.complete = savedComplete ? 'true' : 'false';
-                }
-            });
-
-            startStepStatus.textContent = formatLocationStatus(startLocation, '⏳ עדיין לא נבחרה');
-            endStepStatus.textContent = formatLocationStatus(endLocation, '⏳ עדיין לא נבחרה');
-            intermediateStepStatus.textContent = intermediateComplete ? `✔️ ${intermediateLocations.length} עצירות` : '➕ הוספה חופשית';
-            saveStepStatus.textContent = savedComplete ? '✔️ המסלול הזה נשמר' : '💾 עדיין לא נשמר';
-
+            const saved = loadSavedRoutes().some(route => PlannerState.sameInputs(route, current));
+            const count = intermediateLocations.length;
+            const summary = count === 1 ? 'עצירת ביניים אחת' : count + ' עצירות ביניים';
+            document.getElementById('planCount').textContent = count || startLocation || endLocation ? summary : 'מסלול חדש';
+            startStepStatus.textContent = startLocation?.address || 'בחרו נקודת יציאה';
+            endStepStatus.textContent = endLocation?.address || 'בחרו יעד סיום';
+            for (const [status, point] of [[startStepStatus, startLocation], [endStepStatus, endLocation]]) {
+                status.closest('button').querySelector('.field-action').textContent = point ? 'עריכה' : 'בחירה';
+            }
+            intermediateStepStatus.textContent = count ? '' : 'עדיין אין עצירות ביניים.';
+            intermediateStepStatus.hidden = Boolean(count);
+            saveStepStatus.textContent = saved ? 'המסלול הזה נשמר' : 'עדיין לא נשמר';
         }
 
-        document.querySelectorAll('[data-step-toggle]').forEach((button) => {
+        for (const button of document.querySelectorAll('[data-step-toggle]')) {
             button.addEventListener('click', () => {
                 const step = Number(button.closest('.step-card').dataset.step);
-                setActiveStep(step);
+                // The add control also starts a fresh search when editing an existing stop.
+                const adding = step === 3 && editingStop;
+                if (adding) endStopEdit();
+                setActiveStep(step === activeStep && !adding ? 0 : step);
             });
-        });
+        }
+
 
         function addIntermediateLocation(locationData) {
             const points = [startLocation, ...intermediateLocations, endLocation];
@@ -544,7 +401,7 @@
 
         function saveDraft() {
             if (!draftReady) return;
-            const draft = {...currentRoute(), activeStep, name: saveRouteNameInput.value, wazeStopIndex: wazeNav.currentIndex};
+            const draft = {...currentRoute(), activeStep, plannerView, name: saveRouteNameInput.value, ...wazeNav.progress};
             const warning = document.getElementById('draftWarning');
             try {
                 localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
@@ -607,7 +464,7 @@
         function updateSavedRoutesList() {
             const routes = loadSavedRoutes();
             savedRoutesList.replaceChildren();
-            savedRoutesToggleBtn.classList.toggle('hidden', !routes.length);
+            savedRoutesCount.hidden = !routes.length;
             savedRoutesCount.textContent = routes.length;
             openSavedRoutesPanelBtn.disabled = !routes.length;
             if (!routes.length) {
@@ -662,7 +519,7 @@
             }
             resetAddressPickers();
             saveRouteNameInput.value = '';
-            applyRoute(route, 3);
+            applyRoute(route, 3, 'plan');
             saveDraft();
             closeSavedRoutesPanel();
             stepCards[2].querySelector('[data-step-toggle]').focus();
@@ -680,63 +537,69 @@
         }
 
         function renderIntermediateChip(location, index) {
-            const chip = element('div', 'chip flex flex-wrap items-center justify-between gap-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-xl px-2 py-1 text-sm');
+            const chip = element('li', 'chip');
             chip.draggable = true;
             chip.dataset.index = index;
-            const controls = element('div', 'flex items-center');
+            const address = element('button', 'address');
+            address.type = 'button';
+            address.dataset.action = 'edit';
+            address.setAttribute('aria-label', 'עריכת עצירה ' + (index + 1) + ' · ' + location.address);
+            address.append(element('b', '', location.address));
+            const controls = element('div', 'stop-actions');
             for (const [action, icon, label] of [['up', '↑', 'העלה'], ['down', '↓', 'הורד'], ['remove', '✕', 'הסר']]) {
-                const button = element('button', 'stop-control hover:bg-slate-100 dark:hover:bg-slate-700', icon);
+                const button = element('button', 'stop-control', icon);
                 button.type = 'button';
                 button.dataset.action = action;
                 button.setAttribute('aria-label', label + ' את ' + location.address);
-                if (action === 'remove') button.classList.add('remove-intermediate-btn');
                 button.disabled = (action === 'up' && index === 0) || (action === 'down' && index === intermediateLocations.length - 1);
                 controls.append(button);
             }
-            chip.append(element('span', 'break-words min-w-0 flex-1', (index + 1) + '. ' + location.address), controls);
+            chip.append(element('span', 'stop-index', index + 1), address, controls);
             return chip;
         }
 
         function updateIntermediateLocationsList() {
-            intermediateLocationsList.innerHTML = '';
-            if (intermediateLocations.length === 0) {
-                intermediateLocationsList.innerHTML = '<span class="text-sm text-slate-400 dark:text-slate-400">אין עצירות ביניים עדיין.</span>';
-            } else {
-                intermediateLocations.forEach((location, index) => {
-                    const chip = renderIntermediateChip(location, index);
-                    intermediateLocationsList.appendChild(chip);
-                });
-            }
+            intermediateLocationsList.replaceChildren(...intermediateLocations.map(renderIntermediateChip));
             updateStepProgress();
         }
 
         function updateFixedLocationDisplays() {
-            currentStartLocationDiv.textContent = formatLocationStatus(startLocation, '⏳ בחר נקודת התחלה');
-            currentEndLocationDiv.textContent = formatLocationStatus(endLocation, '⏳ בחר נקודת סיום');
             clearStartLocationBtn.hidden = !startLocation;
             clearEndLocationBtn.hidden = !endLocation;
             updateStepProgress();
         }
 
-        function formatLocationStatus(location, emptyText) {
-            if (!location) {
-                return emptyText;
-            }
-            return `✔️ ${location.address}`;
+        const areaButton = document.getElementById('areaButton');
+        const areaEditor = document.getElementById('areaEditor');
+        function setAreaOpen(open) {
+            areaEditor.hidden = !open;
+            areaButton.setAttribute('aria-expanded', String(open));
+            if (!open) areaButton.focus();
         }
+        areaButton.addEventListener('click', () => setAreaOpen(areaEditor.hidden));
+        document.getElementById('closeArea').addEventListener('click', () => setAreaOpen(false));
 
+        function updateAreaLabel() {
+            const {area} = searchContext();
+            const label = area.city || (Number.isFinite(area.lat) ? 'בקרבת מקום' : 'אזור חיפוש');
+            document.getElementById('areaLabel').textContent = label;
+            areaButton.setAttribute('aria-label', area.city || Number.isFinite(area.lat) ? 'אזור חיפוש · ' + label : label);
+        }
         const searchContext = mountSearchArea(() => {
             resetStartSearch();
             resetEndSearch();
             resetStopSearch();
             messageImport.resetSearches();
+            updateAreaLabel();
         });
+        updateAreaLabel();
 
         function selectStop(location) {
             if (!addIntermediateLocation(location)) return false;
             showMessage('עצירת הביניים נוספה.', 'success');
             return true;
         }
+
 
         const resetStartSearch = mountAddressSearch(startAddressInput, setStartLocationBtn, startSuggestions, searchContext, location => {
             startLocation = location;
@@ -752,10 +615,26 @@
             clearRouteDisplay();
             showMessage('נקודת הסיום נבחרה.', 'success');
         });
-        const resetStopSearch = mountAddressSearch(intermediateAddressInput, addIntermediateLocationBtn, intermediateSuggestions, searchContext, selectStop);
+        const resetStopSearch = mountAddressSearch(intermediateAddressInput, addIntermediateLocationBtn, intermediateSuggestions, searchContext, location => {
+            if (!editingStop) return selectStop(location);
+            const index = intermediateLocations.indexOf(editingStop);
+            if (index < 0) return false;
+            const otherPoints = [startLocation, ...intermediateLocations.filter((_, i) => i !== index), endLocation];
+            if (otherPoints.some(p => p && p.lat === location.lat && p.lng === location.lng)) {
+                showMessage('המיקום הזה כבר מופיע ברשימה שלך.', 'info');
+                return false;
+            }
+            intermediateLocations[index] = location;
+            updateIntermediateLocationsList();
+            setActiveStep(0);
+            clearRouteDisplay();
+            intermediateLocationsList.children[index].querySelector('[data-action="edit"]').focus();
+            return true;
+        });
         const messageImport = mountMessageImport(searchContext, selectStop);
 
         function resetAddressPickers() {
+            endStopEdit();
             resetStartSearch();
             resetEndSearch();
             resetStopSearch();
@@ -796,8 +675,18 @@
             const button = event.target.closest('button[data-action]');
             if (!button || button.disabled) return;
             const index = Number(button.closest('.chip').dataset.index);
+            if (button.dataset.action === 'edit') {
+                resetStopSearch();
+                editingStop = intermediateLocations[index];
+                setActiveStep(3);
+                intermediateAddressInput.value = editingStop.mapsAddress || editingStop.address;
+                document.querySelector('label[for="intermediateAddressInput"]').textContent = 'עריכת עצירה ' + (index + 1);
+                intermediateAddressInput.focus();
+                return;
+            }
             let focusIndex = index;
             if (button.dataset.action === 'remove') {
+                if (editingStop === intermediateLocations[index]) endStopEdit();
                 intermediateLocations.splice(index, 1);
                 updateIntermediateLocationsList();
                 clearRouteDisplay();
@@ -809,7 +698,7 @@
             const chip = intermediateLocationsList.children[focusIndex];
             const nextButton = chip?.querySelector('[data-action="' + button.dataset.action + '"]:enabled')
                 || chip?.querySelector('button:enabled');
-            (nextButton || intermediateAddressInput).focus();
+            (nextButton || document.querySelector('[data-step="3"] [data-step-toggle]')).focus();
         });
 
         intermediateLocationsList.addEventListener('dragstart', (event) => {
@@ -869,20 +758,27 @@
         const mapsFallbackNote = document.getElementById('mapsFallbackNote');
         const mapsLegs = document.getElementById('mapsLegs');
         const mapsLegLinks = document.getElementById('mapsLegLinks');
-        const wazeNav = WazeNavigation.mount(document.getElementById('wazeNavigation'), saveDraft);
+        const wazeNav = WazeNavigation.mount(document.getElementById('wazeNavigation'), optimizedRouteList,
+            document.querySelector('[data-waze-previous]'), saveDraft);
+        const driveEmpty = document.getElementById('driveEmpty');
+        const driveItinerary = document.getElementById('driveItinerary');
+        const driveMaps = document.getElementById('driveMaps');
+        const driveSummary = document.getElementById('driveSummary');
+        const calculationStatus = document.getElementById('calculationStatus');
         let pendingCalculation = null;
 
         function showRouteStatus(text) {
-            const item = document.createElement('li');
-            item.className = 'text-sm text-slate-500 dark:text-slate-300';
-            item.textContent = text;
-            optimizedRouteList.replaceChildren(item);
+            calculationStatus.textContent = text;
         }
 
         function clearRouteDisplay() {
             if (pendingCalculation) pendingCalculation.abort();
             pendingCalculation = null;
-            showRouteStatus('המסלול יופיע כאן לאחר חישוב.');
+            showRouteStatus('');
+            driveSummary.textContent = '';
+            driveEmpty.hidden = false;
+            driveItinerary.hidden = true;
+            driveMaps.hidden = true;
             openInGoogleMapsBtn.classList.add('hidden');
             openInGoogleMapsBtn.removeAttribute('href');
             mapsOptions.classList.add('hidden');
@@ -895,18 +791,14 @@
             saveDraft();
         }
 
-        function renderOptimizedRoute(route, wazeStopIndex = 0) {
+        function renderOptimizedRoute(route, progress) {
             lastOptimizedRoute = route;
-            optimizedRouteList.replaceChildren();
-            route.forEach((location, index) => {
-                const item = document.createElement('li');
-                item.className = 'py-1 px-2 border-b border-slate-100 dark:border-slate-700 last:border-b-0 text-sm text-slate-700 dark:text-slate-200';
-                item.textContent = `${index + 1}. ${location.address}`;
-                optimizedRouteList.appendChild(item);
-            });
-
+            driveSummary.textContent = route[0].address + ' ← ' + route[route.length - 1].address;
+            driveEmpty.hidden = true;
+            driveItinerary.hidden = false;
+            showRouteStatus('');
             updateMapsLinks();
-            wazeNav.show(route, Boolean(startLocation), wazeStopIndex);
+            wazeNav.show(route, Boolean(startLocation), progress);
         }
 
         function addMapsLink(container, url, label) {
@@ -925,9 +817,9 @@
             openInGoogleMapsBtn.classList.toggle('hidden', !fullUrl);
             if (fullUrl) {
                 openInGoogleMapsBtn.href = fullUrl;
-                openInGoogleMapsBtn.textContent = exact
+                openInGoogleMapsBtn.setAttribute('aria-label', exact
                     ? `פתיחת כל ${lastOptimizedRoute.length} הנקודות ב-Google Maps לפי מיקום מדויק`
-                    : 'פתיחת המסלול ב-Google Maps';
+                    : 'פתיחת המסלול ב-Google Maps');
             }
             else openInGoogleMapsBtn.removeAttribute('href');
             mapsOptions.classList.remove('hidden');
@@ -943,6 +835,8 @@
             else if (exact ? alternate.usesCoordinates : usesCoordinates) notes.push('גם בקישור לפי שמות, כתובת חלקית או לא חד־משמעית תישלח כנקודת ציון. כך גם כשהקישור ארוך מדי.');
             mapsFallbackNote.classList.toggle('hidden', !notes.length);
             mapsFallbackNote.textContent = notes.join(' ');
+            document.getElementById('driveMapSegmentsLink').hidden = Boolean(fullUrl);
+            driveMaps.hidden = !(showAlternate || notes.length || alternate.namedLegs.length || segments.length > 1);
             mapsLegLinks.replaceChildren();
             mapsLegs.open = false;
             mapsLegs.classList.toggle('hidden', !alternate.namedLegs.length);
@@ -965,8 +859,8 @@
 
         optimizeRouteBtn.addEventListener('click', async () => {
             const previousOrder = lastOptimizedRoute;
-            const previousWazeStop = wazeNav.currentIndex;
-            clearRouteDisplay();
+            const previousProgress = wazeNav.progress;
+            if (pendingCalculation) pendingCalculation.abort();
             const start = startLocation;
             const end = endLocation;
             const stops = intermediateLocations.slice();
@@ -993,7 +887,8 @@
                     return;
                 }
                 const sameOrder = previousOrder.length === route.length && previousOrder.every((point, i) => point === route[i]);
-                renderOptimizedRoute(route, sameOrder ? previousWazeStop : 0);
+                renderOptimizedRoute(route, sameOrder ? previousProgress : undefined);
+                setPlannerView('drive');
                 saveDraft();
                 showMessage(exact ? 'המסלול מוכן.' : 'המסלול המשוער מוכן.', 'success');
             } catch (error) {
@@ -1020,7 +915,7 @@
 
         function closeSavedRoutesPanel() {
             document.getElementById('planner').inert = false;
-            const focusTarget = panelOpener?.offsetParent && !panelOpener.disabled ? panelOpener : themeToggleBtn;
+            const focusTarget = panelOpener?.offsetParent && !panelOpener.disabled ? panelOpener : savedRoutesToggleBtn;
             focusTarget.focus();
             savedRoutesPanel.classList.add('hidden');
             savedRoutesPanel.setAttribute('aria-hidden', 'true');
@@ -1070,7 +965,7 @@
             });
         }
 
-        function applyRoute(route, step) {
+        function applyRoute(route, step, view = route.plannerView) {
             draftReady = false;
             startLocation = route.startLocation || null;
             intermediateLocations = [...route.intermediateLocations];
@@ -1079,8 +974,9 @@
             updateIntermediateLocationsList();
             clearRouteDisplay();
             const restored = PlannerState.restoreOrder(route);
-            if (restored.length) renderOptimizedRoute(restored, route.wazeStopIndex);
-            setActiveStep(Number.isInteger(step) && step >= 1 && step <= 4 ? step : 1);
+            if (restored.length) renderOptimizedRoute(restored, route);
+            setActiveStep(Number.isInteger(step) && step >= 0 && step <= 4 ? step : 0);
+            setPlannerView(view === 'plan' || view === 'drive' ? view : restored.length ? 'drive' : 'plan', false);
             draftReady = true;
         }
 
