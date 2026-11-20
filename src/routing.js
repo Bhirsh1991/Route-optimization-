@@ -59,10 +59,10 @@
           /^(?:כביש|highway|route)\s+\d+$/iu.test(street)) return '';
     }
     const country = parts.pop() || '';
-    const hasLocality = parts.some(part => /\p{L}{2}/u.test(part) &&
+    const localityParts = parts.filter(part => /\p{L}{2}/u.test(part) &&
       !/^(?:מחוז|נפת)\s|\b(?:district|county)\b/iu.test(part));
-    if (!hasLocality || !/\p{L}{2}/u.test(country) || /[;|]/.test(street)) return '';
-    return [street, ...parts, country].join(', ');
+    if (!localityParts.length || !/\p{L}{2}/u.test(country) || /[;|]/.test(street)) return '';
+    return [street, ...new Set(localityParts), country].join(', ');
   }
 
   function mapStops(points) {
@@ -100,7 +100,7 @@
     return {url, usesCoordinates: values.some((value, i) => value === stops[i].coords)};
   }
 
-  function mapsUrl(points, exact = false) {
+  function mapsUrl(points, exact = points.length > 2) {
     return mapsLink(mapStops(points), exact)?.url || null;
   }
 
@@ -112,16 +112,20 @@
     return segments;
   }
 
-  function mapsLinks(points, exact = false) {
+  function mapsLinks(points, exact = points.length > 2) {
     const stops = mapStops(points);
     const full = mapsLink(stops, exact);
     const segments = mobileSegments(stops).map(segment => ({
       ...mapsLink(segment, exact), start: segment[0].point, end: segment[segment.length - 1].point
     }));
     return {
+      exact,
       fullUrl: full?.url || null,
       hasAddresses: stops.some(stop => stop.name),
       usesCoordinates: full ? full.usesCoordinates : segments.some(s => s.usesCoordinates),
+      namedLegs: !exact && stops.length > 2 ? stops.slice(1).map((to, i) => ({
+        url: mapsLink([stops[i], to], false).url, destination: to.point.address
+      })) : [],
       segments
     };
   }

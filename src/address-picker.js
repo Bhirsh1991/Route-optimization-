@@ -32,6 +32,12 @@ function mountAddressSearch(input, searchButton, results, searchContext, onPick,
         results.textContent = 'לא נמצאו תוצאות. אפשר לדייק את הכתובת והעיר ולנסות שוב.';
         return;
       }
+      if (choices.some(location => location.ambiguous)) {
+        const hint = document.createElement('p');
+        hint.className = 'mt-2 text-sm font-medium';
+        hint.textContent = 'בחיפוש נמצאו נקודות מרוחקות זו מזו. בדקו את השכונה או את הסימון במפה ובחרו את היעד המתאים.';
+        results.append(hint);
+      }
       for (const location of choices) {
         const button = document.createElement('button');
         button.type = 'button';
@@ -39,13 +45,53 @@ function mountAddressSearch(input, searchButton, results, searchContext, onPick,
         const label = RouteGeocode.displayFullAddress(location.fullAddress);
         const duplicate = choices.some(other => other !== location && RouteGeocode.displayFullAddress(other.fullAddress) === label);
         const coordinates = duplicate ? ' (' + location.lat + ', ' + location.lng + ')' : '';
-        button.textContent = (location.approximate ? 'ללא מספר בית מאומת · ' : '') + label + coordinates;
+        if (location.ambiguous) {
+          const area = location.localityDetail || '';
+          const place = location.placeName || '';
+          const repeatedParts = new Set([area, ...area.split(/[,·/]/).map(part => part.trim()), place]);
+          const street = label.split(', ').filter(part => !repeatedParts.has(part)).join(', ');
+          const heading = document.createElement('strong');
+          heading.className = 'block';
+          heading.textContent = area || 'נקודה במפה (' + location.lat + ', ' + location.lng + ')';
+          button.append(heading);
+          if (street) button.append(document.createTextNode(street + (area ? coordinates : '')));
+          if (place && place !== area) {
+            const business = document.createElement('span');
+            business.className = 'block text-sm';
+            business.textContent = 'מקום בכתובת · ' + place;
+            button.append(business);
+          }
+        } else {
+          button.textContent = (location.approximate ? 'ללא מספר בית מאומת · ' : '') + label + coordinates;
+        }
+        if (location.reference || location.referenceMatched) {
+          const reference = document.createElement('span');
+          reference.className = 'block text-sm text-slate-600 dark:text-slate-300';
+          reference.textContent = location.reference
+            ? 'נקודה ממאגר כתובות שפורסם ב־2024'
+            : 'תואם למאגר כתובות נוסף';
+          button.append(reference);
+        }
         button.addEventListener('click', () => {
           if (!isCurrent() || onPick(location) === false) return;
           input.value = '';
           reset();
         });
         results.append(button);
+        if (location.ambiguous) {
+          const map = document.createElement('a');
+          map.className = 'inline-flex min-h-[44px] items-center px-3 text-sm underline';
+          const url = new URL('https://www.openstreetmap.org/');
+          url.searchParams.set('mlat', location.lat);
+          url.searchParams.set('mlon', location.lng);
+          url.hash = 'map=19/' + location.lat + '/' + location.lng;
+          map.href = url.href;
+          map.target = '_blank';
+          map.rel = 'noopener noreferrer';
+          map.textContent = 'בדוק במפה';
+          map.setAttribute('aria-label', 'בדוק במפה · ' + (location.localityDetail || label));
+          results.append(map);
+        }
       }
     } catch (error) {
       if (isCurrent()) results.textContent = error.message || 'חיפוש הכתובות נכשל. אפשר לנסות שוב.';

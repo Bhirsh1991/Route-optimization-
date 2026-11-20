@@ -32,6 +32,12 @@ function roadMatrix(url) {
   return {code: 'Ok', durations: positions.map(from => positions.map(to => Math.abs(from - to)))};
 }
 
+function mapsPoints(url) {
+  const params = new URL(url).searchParams;
+  const via = params.get('waypoints');
+  return [params.get('origin'), ...(via ? via.split('|') : []), params.get('destination')];
+}
+
 test('restoring a previous-release trip retains qualified names and exact fallback', async ({page}) => {
   await page.addInitScript(() => {
     const startLocation = {lat: 31, lng: 35, address: 'Example Road 3', fullAddress: '3, Example Road, Sample City, Testland'};
@@ -46,12 +52,19 @@ test('restoring a previous-release trip retains qualified names and exact fallba
   const urls = new URL(await link.getAttribute('href')).searchParams;
   expect(urls.get('origin')).toBe('3 Example Road, Sample City, Testland');
   expect(urls.get('destination')).toBe('31.02,35');
+  await expect(page.locator('#mapsAlternate')).toHaveText('פתיחת המסלול לפי מיקום מדויק');
+  expect(mapsPoints(await page.locator('#mapsAlternate').getAttribute('href'))).toEqual(['31,35', '31.02,35']);
   await expect(page.locator('#mapsFallbackNote')).toBeVisible();
+  await expect(page.locator('#mapsLegs')).toBeHidden();
 });
 
 test('five stops survive Google Maps export, draft restoration and named save/load', async ({ page, context }) => {
   test.setTimeout(60000);
-  const queries = await mockSearch(page);
+  const queries = await mockSearch(page, query => {
+    const item = point(Number(query.split(' ').at(-1)), query);
+    if (query === 'Stop 2') delete item.address.city;
+    return [item];
+  });
   const requests = [];
   await page.route('https://router.project-osrm.org/**', route => {
     requests.push(route.request().url());
@@ -75,42 +88,44 @@ test('five stops survive Google Maps export, draft restoration and named save/lo
   expect(queries).toHaveLength(7);
   expect(requests).toHaveLength(1);
 
-  const newPage = context.waitForEvent('page');
-  await page.locator('#openInGoogleMapsBtn').tap();
-  const maps = await newPage;
-  await maps.waitForURL('https://www.google.com/maps/**');
-  const params = new URL(maps.url()).searchParams;
-  const named = [params.get('origin'), ...params.get('waypoints').split('|'), params.get('destination')];
-  expect(named).toHaveLength(7);
-  named.forEach((name, i) => {
-    expect(name).toContain('Stop');
-    expect(name).toContain(String(i));
-    expect(name).toContain('Testville');
-  });
-  await maps.close();
+  async function openMaps(link) {
+    const newPage = context.waitForEvent('page');
+    await link.tap();
+    const maps = await newPage;
+    await maps.waitForURL('https://www.google.com/maps/**');
+    const stops = mapsPoints(maps.url());
+    await maps.close();
+    return stops;
+  }
+  const primary = page.locator('#openInGoogleMapsBtn');
+  await expect(primary).toContainText('כל 7 הנקודות');
+  const exact = Array.from({length: 7}, (_, i) => point(i).lat + ',35');
+  expect(await openMaps(primary)).toEqual(exact);
+  const namesLink = page.getByRole('link', {name: 'פתיחת המסלול לפי שמות הכתובות', exact: true});
+  const named = Array.from({length: 7}, (_, i) => 'Stop ' + i + ', Testville, Testland');
+  named[2] = exact[2];
+  expect(await openMaps(namesLink)).toEqual(named);
+
+  await expect(page.locator('#mapsLegs')).not.toHaveAttribute('open', '');
+  await page.locator('#mapsLegs summary').tap();
+  const legs = page.locator('#mapsLegLinks a');
+  await expect(legs).toHaveCount(6);
+  const legUrls = await legs.evaluateAll(links => links.map(link => link.href));
+  expect(legUrls.every(url => !new URL(url).searchParams.has('waypoints'))).toBe(true);
+  expect(legUrls.map(mapsPoints)).toEqual(named.slice(1).map((stop, i) => [named[i], stop]));
+  expect(await openMaps(page.getByRole('link', {name: 'נסיעה 2 מתוך 6 · Stop 2', exact: true})))
+    .toEqual([named[1], exact[2]]);
 
   await page.locator('#mapsSegments summary').tap();
   const segments = page.locator('#mapsSegmentLinks a');
-  await expect(segments).toHaveCount(2);
+  await expect(segments).toHaveCount(4);
   const urls = await segments.evaluateAll(links => links.map(link => link.href));
-  const stops = urls.map(url => {
-    const p = new URL(url).searchParams;
-    return [p.get('origin'), ...p.get('waypoints').split('|'), p.get('destination')];
-  });
-  expect(stops[0]).toEqual(named.slice(0, 5));
-  expect(stops[1]).toEqual(named.slice(4));
-  await page.locator('#mapsExact').check();
-  const exact = new URL(await page.locator('#openInGoogleMapsBtn').getAttribute('href')).searchParams;
-  expect(exact.get('origin')).toBe('31,35');
-  expect(exact.get('waypoints').split('|')).toEqual([1, 2, 3, 4, 5].map(i => point(i).lat + ',35'));
-  expect(exact.get('destination')).toBe('31.06,35');
-  const exactSegment = new URL(await segments.nth(1).getAttribute('href')).searchParams;
-  expect(exactSegment.get('origin')).toBe('31.04,35');
-  expect(exactSegment.get('waypoints')).toBe('31.05,35');
+  expect(urls.map(mapsPoints)).toEqual([exact.slice(0, 5), named.slice(0, 5), exact.slice(4), named.slice(4)]);
 
   await page.reload();
   await expect(page.locator('#optimizedRouteList li')).toHaveText(ordered);
   await expect(page.locator('#openInGoogleMapsBtn')).toBeVisible();
+  expect(mapsPoints(await primary.getAttribute('href'))).toEqual(exact);
   await page.locator('[data-step="4"] [data-step-toggle]').tap();
   await page.locator('#saveRouteNameInput').fill('סידורים <יום חמישי>');
   await page.locator('#saveRouteBtn').tap();
@@ -132,6 +147,32 @@ test('five stops survive Google Maps export, draft restoration and named save/lo
   await page.getByRole('button', {name: 'טען', exact: true}).tap();
   await expect(page.getByRole('dialog')).toBeHidden();
   await expect(page.locator('#optimizedRouteList li')).toHaveText(ordered);
+});
+
+test('an over-limit Maps route opens ordered segments with every stop in both formats', async ({page}) => {
+  const points = Array.from({length: 12}, (_, i) => ({
+    lat: 31 + i / 100, lng: 35, address: 'Stop ' + i, mapsAddress: 'Stop ' + i + ', Testville'
+  }));
+  await page.addInitScript(stops => {
+    localStorage.setItem('route-optimization:draft:v1', JSON.stringify({
+      startLocation: stops[0], endLocation: stops.at(-1), intermediateLocations: stops.slice(1, -1),
+      optimizedOrder: stops.map((_, i) => i)
+    }));
+  }, points);
+  await page.goto('./');
+  await expect(page.locator('#openInGoogleMapsBtn')).toBeHidden();
+  await expect(page.locator('#mapsAlternate')).toBeHidden();
+  await expect(page.locator('#mapsSegments')).toHaveAttribute('open', '');
+  await expect(page.locator('#mapsFallbackNote')).toContainText('פתחו את המקטעים לפי הסדר');
+  const links = page.locator('#mapsSegmentLinks');
+  for (const [label, expected] of [
+    ['לפי מיקום', points.map(p => p.lat + ',' + p.lng)],
+    ['לפי שמות', points.map(p => p.mapsAddress)]
+  ]) {
+    const urls = await links.getByRole('link').filter({hasText: label}).evaluateAll(items => items.map(a => a.href));
+    expect(urls).toHaveLength(3);
+    expect(urls.flatMap((url, i) => mapsPoints(url).slice(i ? 1 : 0))).toEqual(expected);
+  }
 });
 
 test('saving fails visibly when storage is full and preserves the typed name', async ({ page }) => {

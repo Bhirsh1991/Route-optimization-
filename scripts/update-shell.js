@@ -10,7 +10,7 @@ for (const directory of ['assets', 'src']) {
 
 // Hash LF-normalized text so Windows and Pages CI produce the same release.
 const hash = createHash('sha256');
-for (const file of staticFiles) {
+for (const file of [...staticFiles, 'data/netanya-addresses.json']) {
   const bytes = readFileSync(file);
   hash.update(file + '\0');
   hash.update(/\.(css|js|html|json)$/.test(file) ? bytes.toString().replace(/\r\n/g, '\n') : bytes);

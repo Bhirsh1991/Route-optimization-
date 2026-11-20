@@ -1,7 +1,7 @@
 (function(root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory();
-  else root.RouteGeocode = factory();
-}(typeof self !== 'undefined' ? self : this, function() {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./netanya-reference'));
+  else root.RouteGeocode = factory(root.NetanyaReference);
+}(typeof self !== 'undefined' ? self : this, function(reference) {
   const cache = new Map();
   let pending = Promise.resolve();
   let nextRequest = 0;
@@ -14,6 +14,7 @@
   function cleanAliases(part) {
     const names = [...new Set(part.split(';').map(name => name.trim()).filter(Boolean))];
     if (names.length === 2) {
+      if (streetWords(names[0]).join(' ') === streetWords(names[1]).join(' ')) return names[0];
       // OSM can supply both a full street name and its alias with the house number.
       const numbered = names[1].match(/^(.+?)\s+(\d+[\p{L}-]*)$/u);
       if (numbered && (names[0] === numbered[1] || names[0].endsWith(' ' + numbered[1]))) {
@@ -57,7 +58,10 @@
     const road = details.road || details.pedestrian || details.footway || '';
     const number = (details.house_number || '').toString();
     const location = { address: shortenAddress(item.display_name), fullAddress: item.display_name, lat, lng, mapsAddress: null };
-    let label = road && number ? cleanAliases(road) + ' ' + number : '';
+    location.localityDetail = [...new Set([details.neighbourhood, details.suburb, details.quarter].filter(Boolean))].join(' · ');
+    if (['amenity', 'shop', 'tourism', 'office'].includes(item.category)) location.placeName = item.name || '';
+    let label = road && number ? cleanAliases(road) : '';
+    if (label && !label.endsWith(' ' + number)) label += ' ' + number;
     if (!label && ['amenity', 'tourism', 'shop', 'leisure'].includes(item.category)) label = item.name;
     if (label && city) location.mapsAddress = [label, city, details.country].filter(Boolean).join(', ');
     return { location, road, number, city, category: item.category };
@@ -114,8 +118,14 @@
     return request;
   }
 
-  function parseQuery(query) {
-    const [first, ...rest] = query.trim().split(/\s*,\s*/u);
+  function parseQuery(query, preferredCity) {
+    const parts = query.trim().split(/\s*,\s*/u);
+    if (parts.length === 2 && !/\d/.test(parts[0]) && /\d/.test(parts[1])) parts.reverse();
+    let [first, ...rest] = parts;
+    if (preferredCity && !rest.length && first.startsWith(preferredCity + ' ')) {
+      first = first.slice(preferredCity.length).trim();
+      rest = [preferredCity];
+    }
     const numberPattern = '(\\d+(?:[-/]\\d+)?[a-zA-Zא-ת]?)';
     const leading = first.match(new RegExp('^' + numberPattern + '\\s+(.+)$', 'u'));
     if (leading) return { street: leading[2], number: leading[1], city: rest.join(', ') };
@@ -131,11 +141,57 @@
   }
 
   function matchesStreet(road, words) {
-    const actual = streetWords(road);
-    // Hebrew names vary in full/defective spelling, e.g. איתמר / אתמר.
-    return words.every(w => actual.some(a => a === w ||
-      (Math.min(a.length, w.length) >= 3 && Math.abs(a.length - w.length) === 1 &&
-       a.replace(/[יו]/gu, '') === w.replace(/[יו]/gu, ''))));
+    return road.split(';').some(alias => {
+      const actual = streetWords(alias);
+      // Hebrew names vary in full/defective spelling, e.g. איתמר / אתמר.
+      return words.length && words.every(w => actual.some(a => a === w ||
+        (Math.min(a.length, w.length) >= 3 && Math.abs(a.length - w.length) === 1 &&
+         a.replace(/[יו]/gu, '') === w.replace(/[יו]/gu, ''))));
+    });
+  }
+
+  function sameCity(actual, expected) {
+    if (!actual || !expected) return true;
+    const key = text => text.normalize('NFKC').split(',')[0].replace(/[-־–]+/g, ' ').trim()
+      .replace(/\s+/g, ' ').toLowerCase().replace(/^תל אביב יפו$/, 'תל אביב');
+    // A result can use a different language from the user's query.
+    return detectLanguage(actual) !== detectLanguage(expected) || key(actual) === key(expected);
+  }
+
+  function distanceMeters(a, b) {
+    const lonScale = Math.cos((a.lat + b.lat) * Math.PI / 360);
+    return 111200 * Math.hypot(a.lat - b.lat, (a.lng - b.lng) * lonScale);
+  }
+
+  function resolveNumbered(rows, refs) {
+    const ordered = rows.slice().sort((a, b) => Number(Boolean(a.location.placeName)) - Number(Boolean(b.location.placeName)));
+    const points = [];
+    const towns = new Map();
+    for (const row of ordered) {
+      const p = {...row.location};
+      if (points.some(other => other.lat === p.lat && other.lng === p.lng)) continue;
+      // A shop and an address point for the same building often have separate OSM records.
+      if (p.placeName && p.mapsAddress && points.some(other =>
+        other.mapsAddress === p.mapsAddress && distanceMeters(other, p) < 35)) continue;
+      points.push(p);
+      towns.set(p, row.city);
+    }
+    let choices = points;
+    if (refs.length) {
+      const matched = points.filter(p => refs.some(ref => distanceMeters(p, ref) <= 60));
+      if (matched.length) {
+        choices = matched.map(p => ({...p, referenceMatched: true}));
+        // A name that geocodes to another building should travel as the selected pin.
+        if (points.some(p => matched.every(m => distanceMeters(m, p) > 100))) choices.forEach(p => { p.mapsAddress = null; });
+        choices.push(...refs.filter(r => matched.every(p => distanceMeters(r, p) > 60)));
+      } else choices = [...refs, ...points];
+    }
+    return choices.map(p => {
+      const conflict = choices.some(other => other !== p && distanceMeters(p, other) > 100 &&
+        (refs.length || (towns.get(p) && towns.get(p) === towns.get(other)) ||
+         (p.mapsAddress && p.mapsAddress === other.mapsAddress)));
+      return conflict ? {...p, ambiguous: true, mapsAddress: null} : p;
+    });
   }
 
   function locations(rows, approximate) {
@@ -164,76 +220,124 @@
   async function findAddresses(query, israelOnly = false, isCurrent = () => true, area = {}) {
     query = query.trim();
     if (!query || !isCurrent()) return [];
-    const { street, number, city: explicitCity } = parseQuery(query);
-    let city = explicitCity || area?.city?.trim() || '';
+    const parsed = parseQuery(query, area?.city?.trim());
+    let street = parsed.street;
+    const number = parsed.number;
+    let city = parsed.city || area?.city?.trim() || '';
     const gps = !city && Number.isFinite(area?.lat) && Number.isFinite(area?.lng);
     const lat = gps ? Number(area.lat.toFixed(2)) : null;
     const lng = gps ? Number(area.lng.toFixed(2)) : null;
-    const params = { format: 'jsonv2', addressdetails: '1', 'accept-language': detectLanguage(query), limit: '5' };
+    const params = {format: 'jsonv2', addressdetails: '1', 'accept-language': detectLanguage(query), limit: '5'};
     if (gps) params.viewbox = viewbox(lat, lng);
     if (israelOnly) params.countrycodes = 'il';
-    const lookup = async fields => (await request('search', {...params, ...fields}, isCurrent)).map(resultLocation).filter(Boolean);
-    const localQuery = !explicitCity && city && !query.includes(city) ? query + ', ' + city : query;
-    const direct = await lookup({q: localQuery});
-    const words = streetWords(street);
-    const hebrew = detectLanguage(street) === 'he';
-    const plausible = r => !hebrew || matchesStreet(r.road || addressParts(r.location.fullAddress)[0] || '', words);
-    const correctNumber = r => r.number.toLowerCase() === number.toLowerCase();
-    const explicitlyStreet = /^(?:שדרות|רחוב|שד[׳']?|רח[׳']?|סמטת|דרך|כיכר)\s/u.test(street);
-    if (!number) {
-      const matches = explicitlyStreet ? direct.filter(plausible) : direct;
-      if (matches.length) return locations(matches, false);
-    }
-    const exact = direct.filter(r => plausible(r) && correctNumber(r));
-    let distant = [];
-    if (number && exact.length) {
-      if (!gps || !hebrew) return locations(exact, false);
-      const [west, north, east, south] = params.viewbox.split(',').map(Number);
-      const local = exact.filter(({location: p}) => p.lat >= south && p.lat <= north && p.lng >= west && p.lng <= east);
-      if (local.length) return locations(local, false);
-      distant = locations(exact, false);
-    }
-    if (!isCurrent()) return [];
 
-    let nearby = direct.filter(r => plausible(r) && !r.number);
-    // A shortened Hebrew street can be absent from free-form search even when the road is mapped.
-    // Discover roads in the selected city using a surviving token, then verify all tokens locally.
-    if (hebrew && words.length && (city || gps) && (words.length > 1 || !number || distant.length)) {
-      if (!city) {
-        const result = await request('reverse', { lat, lon: lng, zoom: '10', format: 'jsonv2',
-          addressdetails: '1', 'accept-language': 'he' }, isCurrent);
-        if (result.address && (!israelOnly || result.address.country_code === 'il')) city = locality(result.address);
+    const lookup = async fields => (await request('search', {...params, ...fields}, isCurrent)).map(resultLocation).filter(Boolean);
+    const hebrew = detectLanguage(street) === 'he';
+    const plausible = row => sameCity(row.city, city) &&
+      (!hebrew || matchesStreet(row.road || addressParts(row.location.fullAddress)[0] || '', streetWords(street)));
+    const exact = rows => rows.filter(row => plausible(row) && row.number.toLowerCase() === number.toLowerCase());
+    const refs = (town = city) => number && town ? reference.lookup(street, number, town).catch(() => []) : [];
+    const numbered = async (rows, town = city) => resolveNumbered(rows, await refs(town));
+    const resolveCity = async () => {
+      const res = await request('reverse', {lat, lon: lng, zoom: '10', format: 'jsonv2',
+        addressdetails: '1', 'accept-language': 'he'}, isCurrent);
+      return res.address && (!israelOnly || res.address.country_code === 'il') ? locality(res.address) : '';
+    };
+
+    try {
+      const localQuery = city && number ? [street + ' ' + number, city].join(', ')
+        : city && !parsed.city && !query.includes(city) ? query + ', ' + city : query;
+      let direct = await lookup({q: localQuery});
+      if (!isCurrent()) return [];
+      if (!city && number) {
+        // Some users paste "town street number" without punctuation. Only strip a returned locality.
+        const prefix = direct.map(r => r.city).find(town => town && street.startsWith(town + ' '));
+        if (prefix) {
+          city = prefix;
+          street = street.slice(prefix.length).trim();
+        }
       }
-      if (city) {
-        const anchor = words.find(w => w === 'בן' || w === 'בר') || words[0];
-        const found = await lookup({street: anchor, city, layer: 'address', limit: '20'});
-        const roads = found.filter(r => r.road && !r.number && matchesStreet(r.road, words));
+      const words = () => streetWords(street);
+      if (!number) {
+        const explicitlyStreet = /^(?:שדרות|רחוב|שד[׳']?|רח[׳']?|סמטת|דרך|כיכר)\s/u.test(street);
+        const matches = direct.filter(row => sameCity(row.city, city) && (!explicitlyStreet || plausible(row)));
+        if (matches.length) return locations(matches, false);
+      }
+      let found = number ? exact(direct) : [];
+      let distant = [];
+      if (found.length && (!gps || city || !hebrew)) return numbered(found);
+
+      if (gps && hebrew && number) {
+        const [west, north, east, south] = params.viewbox.split(',').map(Number);
+        const local = found.filter(({location: p}) => p.lat >= south && p.lat <= north && p.lng >= west && p.lng <= east);
+        if (local.length && found.length === local.length && !local.some(r => r.road.includes(';'))) {
+          return numbered(local, local[0].city);
+        }
+        distant = found.filter(r => !local.includes(r));
+        city = await resolveCity();
+        if (!isCurrent()) return [];
+        if (city && local.length) {
+          // The regional viewbox can hide a second address in the same town.
+          const municipal = await lookup({street: number + ' ' + street, city, limit: '15'});
+          found = exact([...municipal, ...local]);
+          if (found.length) return numbered(found);
+        }
+      } else if (gps && hebrew && !city) city = await resolveCity();
+
+      if (!city && number && hebrew && !gps && street.includes(' ') && !direct.some(plausible)) {
+        // Try a city-first phrase only when the returned city, street and house confirm that split.
+        const [first, ...tail] = street.split(/\s+/u);
+        const rest = tail.join(' ');
+        const possible = await lookup({street: number + ' ' + rest, city: first});
+        const matches = possible.filter(row => row.city && sameCity(row.city, first) &&
+          matchesStreet(row.road, streetWords(rest)) && row.number.toLowerCase() === number.toLowerCase());
+        if (matches.length) {
+          street = rest;
+          return numbered(matches, first);
+        }
+      }
+
+      let nearby = direct.filter(row => plausible(row) && !row.number);
+      if (hebrew && city && words().length) {
+        if (number && words().length === 1) {
+          const houses = await lookup({street: number + ' ' + street, city});
+          const confirmed = exact(houses);
+          if (confirmed.length) return numbered(confirmed);
+          nearby = [...nearby, ...houses.filter(row => plausible(row) && !row.number)];
+        }
+        const anchor = words().find(w => w === 'בן' || w === 'בר') || words()[0];
+        const candidates = await lookup({street: anchor, city, layer: 'address', limit: '20'});
+        const roads = candidates.filter(r => r.road && !r.number && plausible(r));
         if (roads.length) {
-          nearby = roads;
-          const canonical = roads[0];
-          let buildings = [];
-          if (number) {
-            const houses = await lookup({street: number + ' ' + canonical.road, city: canonical.city || city});
-            const confirmed = houses.filter(r => streetWords(r.road).join(' ') === streetWords(canonical.road).join(' ') && correctNumber(r));
-            buildings = locations(confirmed, false);
+          const alias = roads[0].road.split(';').find(name => matchesStreet(name, words())).trim();
+          if (number && (words().length > 1 || alias !== street)) {
+            const houses = await lookup({street: number + ' ' + alias, city});
+            const confirmed = exact(houses);
+            if (confirmed.length) return numbered(confirmed);
           }
-          // A street is often split into many geometries. Offer one representative per road and town.
           const seen = new Set();
-          if (buildings.length) seen.add(streetWords(canonical.road).join(' ') + '/' + canonical.city);
-          const others = locations(roads.filter(r => {
-            const key = streetWords(r.road).join(' ') + '/' + r.city;
+          nearby = roads.filter(row => {
+            const key = cleanAliases(row.road) + '/' + row.city;
             if (seen.has(key)) return false;
             seen.add(key);
             return true;
-          }), Boolean(number));
-          return buildings.length ? buildings.concat(others) : others.concat(distant);
+          });
         }
       }
+      if (!isCurrent()) return [];
+      const localReference = await refs();
+      if (localReference.length) return localReference;
+      if (!nearby.length && number) {
+        const fallback = await lookup({q: [street, city].filter(Boolean).join(', ')});
+        nearby = fallback.filter(row => plausible(row) && !row.number);
+      }
+      return locations(nearby, Boolean(number)).concat(locations(distant, false));
+    } catch (error) {
+      if (!isCurrent()) return [];
+      const localReference = await refs();
+      if (localReference.length) return localReference;
+      throw error;
     }
-    if (nearby.length) return locations(nearby, Boolean(number)).concat(distant);
-    if (!number) return [];
-    const streetRows = await lookup({q: [street, city].filter(Boolean).join(', ')});
-    return locations(streetRows.filter(r => plausible(r) && !r.number), true).concat(distant);
   }
 
   // Only labeled addresses or recognizable street lines become suggestions.
