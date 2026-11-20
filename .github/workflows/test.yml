@@ -9,12 +9,17 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '22'
+          cache: npm
       - name: Install dependencies
-        run: npm install
+        run: npm ci
+      - name: Verify shipped CSS and offline shell
+        run: |
+          npm run build
+          git diff --exit-code -- assets/app.css service-worker.js
       - name: Check JS syntax
         run: |
           for f in $(git ls-files '*.js'); do
@@ -24,3 +29,7 @@ jobs:
         run: npm test
       - name: Run test script
         run: bash test.sh
+      - name: Mobile browser tests
+        run: |
+          npx playwright install --with-deps chromium
+          npm run test:browser

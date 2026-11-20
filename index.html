@@ -5,17 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>מארגן נסיעות אופטימלי</title>
     <meta name="theme-color" content="#0f172a">
-    <link rel="icon" type="image/png" href="appLogo.png">
-    <link rel="apple-touch-icon" href="appLogo.png">
+    <link rel="icon" type="image/png" href="assets/icon-192.png">
+    <link rel="apple-touch-icon" href="assets/icon-192.png">
     <link rel="manifest" href="manifest.json">
-    <!-- Tailwind CSS CDN -->
-    <script>
-        window.tailwind = window.tailwind || {};
-        window.tailwind.config = {
-            darkMode: 'class'
-        };
-    </script>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="assets/app.css">
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -45,6 +38,16 @@
 
         .chip.dragging {
             opacity: 0.6;
+        }
+
+        .stop-control {
+            min-width: 44px;
+            min-height: 44px;
+            border-radius: .65rem;
+        }
+
+        .stop-control:disabled {
+            opacity: .3;
         }
 
         .save-success {
@@ -99,25 +102,25 @@
     </style>
 </head>
 <body class="bg-slate-50 dark:bg-slate-950 dark:text-slate-100 flex items-start sm:items-center justify-center min-h-screen p-4 transition-colors duration-300">
-    <button id="themeToggleBtn" class="fixed top-4 left-4 z-20 flex items-center gap-2 bg-white/90 text-slate-700 border border-slate-200 shadow-sm rounded-full px-3 py-2 text-xs sm:text-sm hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-100 dark:border-slate-700 dark:hover:bg-slate-700 transition-colors">
-        <span id="themeToggleIcon" aria-hidden="true">🌙</span>
-        <span id="themeToggleLabel">מצב כהה</span>
-    </button>
-    <div class="fixed top-4 right-4 z-20 flex flex-col items-end gap-1 text-right">
-        <button id="savedRoutesToggleBtn" class="hidden items-center gap-2 bg-white/90 text-slate-700 border border-slate-200 shadow-sm rounded-full px-4 py-2 text-xs sm:text-sm hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-100 dark:border-slate-700 dark:hover:bg-slate-700 transition-colors">
-            📚 מסלולים שמורים
-            <span id="savedRoutesCount" class="inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 text-xs font-semibold rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-100">0</span>
-        </button>
-        <span id="savedRoutesHint" class="text-xs text-slate-400 dark:text-slate-400">אין מסלולים שמורים עדיין.</span>
-    </div>
-    <div class="bg-white dark:bg-slate-900 dark:border dark:border-slate-700 p-6 sm:p-8 rounded-2xl shadow-xl w-full max-w-3xl transition-colors">
+    <div id="planner" class="bg-white dark:bg-slate-900 dark:border dark:border-slate-700 p-4 sm:p-8 rounded-2xl shadow-xl w-full max-w-3xl transition-colors">
+        <header class="mb-5 flex flex-wrap items-center justify-between gap-2">
+            <button id="themeToggleBtn" class="min-h-[44px] flex items-center gap-2 bg-white text-slate-700 border border-slate-200 rounded-full px-3 py-2 text-sm hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-100 dark:border-slate-700 dark:hover:bg-slate-700">
+                <span id="themeToggleIcon" aria-hidden="true">🌙</span>
+                <span id="themeToggleLabel">מצב כהה</span>
+            </button>
+            <button id="savedRoutesToggleBtn" aria-haspopup="dialog" class="hidden min-h-[44px] items-center gap-2 bg-white text-slate-700 border border-slate-200 rounded-full px-3 py-2 text-sm hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-100 dark:border-slate-700 dark:hover:bg-slate-700">
+                📚 מסלולים שמורים
+                <span id="savedRoutesCount" class="inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 text-xs font-semibold rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/60 dark:text-indigo-100">0</span>
+            </button>
+        </header>
         <div class="flex flex-col items-center mb-6 text-center">
-            <img src="appLogo.png" alt="לוגו האפליקציה" class="w-16 h-16 rounded-full object-cover shadow-sm">
+            <img src="logo-small.webp" width="64" height="64" alt="" class="w-16 h-16 rounded-full object-cover shadow-sm">
             <h1 class="text-2xl sm:text-3xl font-bold mt-4 text-slate-900 dark:text-slate-100">מארגן נסיעות אופטימלי</h1>
             <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">בונים מסלול חכם בצעדים פשוטים</p>
         </div>
 
         <div id="messageBox" class="mt-4 p-3 rounded-xl hidden" role="status"></div>
+        <p id="draftWarning" class="hidden mb-3 text-sm text-rose-700 dark:text-rose-300" role="status">הדפדפן לא הצליח לשמור את הטיוטה במכשיר. רענון הדף עלול למחוק אותה.</p>
 
         <div class="space-y-4">
             <section class="step-card rounded-2xl bg-white dark:bg-slate-800" data-step="1" data-active="true" data-complete="false">
@@ -135,14 +138,15 @@
                     <div class="bg-slate-50 dark:bg-slate-800/70 rounded-xl p-4 sm:p-5">
                         <label for="startAddressInput" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-3">כתובת התחלה</label>
                         <div class="flex flex-col sm:flex-row gap-3">
-                            <input type="text" id="startAddressInput" list="startSuggestions" placeholder="הזן כתובת או מקום"
+                            <input type="text" id="startAddressInput" enterkeyhint="search" placeholder="הזן כתובת או מקום"
                                    class="shadow-sm border border-slate-200 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 rounded-xl w-full py-2.5 px-4 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-400">
-                            <datalist id="startSuggestions"></datalist>
                             <button id="setStartLocationBtn"
                                     class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-5 rounded-xl whitespace-nowrap">
-                                📍 בחר נקודת התחלה
+                                חפש כתובת
                             </button>
                         </div>
+                        <label class="inline-flex items-center gap-2 py-2 text-sm"><input type="checkbox" data-israel-only> חיפוש בישראל בלבד</label>
+                        <div id="startSuggestions" aria-label="תוצאות חיפוש לנקודת ההתחלה" aria-live="polite"></div>
                         <div id="currentStartLocation" class="mt-3 text-sm text-slate-600 dark:text-slate-300"></div>
                         <button id="clearStartLocationBtn" class="mt-3 text-xs text-slate-400 hover:text-slate-600 dark:text-slate-400 dark:hover:text-slate-200 underline">נקה בחירה</button>
                     </div>
@@ -164,14 +168,15 @@
                     <div class="bg-slate-50 dark:bg-slate-800/70 rounded-xl p-4 sm:p-5">
                         <label for="endAddressInput" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-3">כתובת סיום</label>
                         <div class="flex flex-col sm:flex-row gap-3">
-                            <input type="text" id="endAddressInput" list="endSuggestions" placeholder="הזן כתובת או מקום"
+                            <input type="text" id="endAddressInput" enterkeyhint="search" placeholder="הזן כתובת או מקום"
                                    class="shadow-sm border border-slate-200 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 rounded-xl w-full py-2.5 px-4 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-400">
-                            <datalist id="endSuggestions"></datalist>
                             <button id="setEndLocationBtn"
                                     class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-5 rounded-xl whitespace-nowrap">
-                                📍 בחר נקודת סיום
+                                חפש כתובת
                             </button>
                         </div>
+                        <label class="inline-flex items-center gap-2 py-2 text-sm"><input type="checkbox" data-israel-only> חיפוש בישראל בלבד</label>
+                        <div id="endSuggestions" aria-label="תוצאות חיפוש לנקודת הסיום" aria-live="polite"></div>
                         <div id="currentEndLocation" class="mt-3 text-sm text-slate-600 dark:text-slate-300"></div>
                         <button id="clearEndLocationBtn" class="mt-3 text-xs text-slate-400 hover:text-slate-600 dark:text-slate-400 dark:hover:text-slate-200 underline">נקה בחירה</button>
                     </div>
@@ -194,21 +199,29 @@
                         <div>
                             <label for="intermediateAddressInput" class="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-3">הוסף עצירת ביניים</label>
                             <div class="flex flex-col sm:flex-row gap-3">
-                                <input type="text" id="intermediateAddressInput" list="intermediateSuggestions" placeholder="לדוגמה: רחוב הרצל 1, תל אביב"
+                                <input type="text" id="intermediateAddressInput" enterkeyhint="search" placeholder="לדוגמה: רחוב הרצל 1, תל אביב"
                                        class="shadow-sm border border-slate-200 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 rounded-xl w-full py-2.5 px-4 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-400">
-                                <datalist id="intermediateSuggestions"></datalist>
                                 <button id="addIntermediateLocationBtn"
                                         class="bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 px-5 rounded-xl whitespace-nowrap">
-                                    ➕ הוסף עצירה
+                                    חפש כתובת
                                 </button>
                             </div>
                         </div>
+                        <label class="inline-flex items-center gap-2 py-2 text-sm"><input type="checkbox" data-israel-only> חיפוש בישראל בלבד</label>
+                        <div id="intermediateSuggestions" aria-label="תוצאות חיפוש לעצירת ביניים" aria-live="polite"></div>
+                        <details class="rounded-xl border border-slate-200 dark:border-slate-600 p-3">
+                            <summary class="cursor-pointer py-2 font-semibold">ייבוא עצירות מהודעת WhatsApp</summary>
+                            <label for="importMessage" class="block text-sm mt-2">הדבק הודעה לחילוץ כתובות. השמות והטלפונים מוצגים במכשיר בלבד. רק כתובת שתאשר לחיפוש תישלח לשירות.</label>
+                            <textarea id="importMessage" rows="4" class="mt-2 w-full rounded-xl border border-slate-200 dark:border-slate-600 dark:bg-slate-900 px-3 py-2" placeholder="כתובת: הרצל 1, תל אביב"></textarea>
+                            <button type="button" id="previewMessageBtn" class="mt-2 rounded-xl bg-slate-900 text-white dark:bg-slate-700 px-4 py-2.5">הצג כתובות לבדיקה</button>
+                            <p id="importStatus" class="text-sm mt-2" role="status"></p>
+                            <div id="importRows"></div>
+                        </details>
                         <div>
                             <div class="flex items-center justify-between">
                                 <p class="text-sm font-semibold text-slate-700 dark:text-slate-200">העצירות שלך</p>
-                                <span class="text-xs text-slate-400 dark:text-slate-400">גרור לשינוי סדר</span>
                             </div>
-                            <div id="intermediateLocationsList" class="mt-3 flex flex-wrap gap-2 min-h-[48px]" aria-live="polite"></div>
+                            <div id="intermediateLocationsList" class="mt-3 grid gap-2 min-h-[48px]" aria-live="polite"></div>
                         </div>
                     </div>
                 </div>
@@ -220,7 +233,7 @@
                         <span class="step-indicator w-9 h-9 rounded-full border border-slate-200 bg-slate-100 dark:border-slate-600 dark:bg-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-200 font-semibold">4</span>
                         <div>
                             <p class="step-title text-lg font-semibold text-slate-700 dark:text-slate-100">שמירת מסלול</p>
-                            <p class="text-sm text-slate-400 dark:text-slate-400">שמור לשימוש חוזר במחשב הזה</p>
+                            <p class="text-sm text-slate-400 dark:text-slate-400">שמור לשימוש חוזר במכשיר הזה</p>
                         </div>
                     </div>
                     <span id="saveStepStatus" class="step-status text-sm text-slate-500 dark:text-slate-300">💾 עדיין לא נשמר</span>
@@ -260,11 +273,11 @@
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                     <h2 class="text-lg font-semibold text-slate-800 dark:text-slate-100">מוכנים לחשב מסלול?</h2>
-                    <p class="text-sm text-slate-500 dark:text-slate-300">נחשב סדר אופטימלי בהתאם לנקודות שבחרת.</p>
+                    <p class="text-sm text-slate-500 dark:text-slate-300">נחשב את סדר העצירות לפי זמני הנסיעה בכביש.</p>
                 </div>
                 <button id="optimizeRouteBtn"
                         class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-6 rounded-xl">
-                    ⚡ חשב מסלול אופטימלי
+                    ⚡ חשב מסלול
                 </button>
             </div>
             <div class="mt-4">
@@ -275,23 +288,29 @@
                     class="w-full sm:w-auto mt-4 bg-slate-900 hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600 text-white font-semibold py-2.5 px-5 rounded-xl hidden">
                 🧭 פתח במפות Google
             </button>
+            <details id="mapsSegments" class="mt-3 hidden">
+                <summary class="cursor-pointer text-sm font-semibold">פתיחה במקטעים בדפדפן נייד</summary>
+                <div id="mapsSegmentLinks" class="mt-2 flex flex-col gap-2"></div>
+            </details>
         </section>
 
         <div class="text-xs text-slate-400 dark:text-slate-500 mt-6 text-center">
-            חיפוש כתובות באמצעות <a href="https://nominatim.org/" target="_blank" class="underline">Nominatim</a> ·
-            ניתוב באמצעות <a href="http://project-osrm.org/" target="_blank" class="underline">OSRM</a>.
+            חיפוש באמצעות <a href="https://nominatim.org/" target="_blank" rel="noopener noreferrer" class="underline">Nominatim</a> ·
+            ניתוב באמצעות <a href="https://project-osrm.org/" target="_blank" rel="noopener noreferrer" class="underline">OSRM</a> ·
+            נתוני מפה © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" class="underline">תורמי OpenStreetMap</a>
         </div>
     </div>
-    <div id="savedRoutesPanel" class="fixed inset-0 z-40 hidden" aria-hidden="true">
+    <div id="savedRoutesPanel" class="fixed inset-0 z-40 hidden" role="dialog" aria-modal="true" aria-labelledby="savedRoutesTitle" aria-hidden="true">
         <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" data-saved-routes-close></div>
-        <div class="absolute left-0 top-0 h-full w-full max-w-md bg-white dark:bg-slate-900 shadow-2xl p-6 flex flex-col gap-4">
+        <div class="absolute left-0 top-0 h-full w-full max-w-md overflow-y-auto bg-white dark:bg-slate-900 shadow-2xl p-6 flex flex-col gap-4">
             <div class="flex items-center justify-between">
                 <div>
-                    <h2 class="text-lg font-semibold text-slate-900 dark:text-slate-100">המסלולים השמורים שלך</h2>
+                    <h2 id="savedRoutesTitle" class="text-lg font-semibold text-slate-900 dark:text-slate-100">המסלולים השמורים שלך</h2>
                     <p class="text-xs text-slate-400 dark:text-slate-400">לחץ על "תצוגה מקדימה" כדי לראות את הפרמטרים.</p>
                 </div>
                 <button id="closeSavedRoutesPanelBtn" class="text-slate-400 hover:text-slate-600 dark:text-slate-400 dark:hover:text-slate-200 text-sm">✕ סגור</button>
             </div>
+            <p id="panelMessage" class="hidden" role="status"></p>
             <div id="savedRoutesList" class="grid gap-3 overflow-y-auto pr-1"></div>
             <div class="border-t border-slate-100 dark:border-slate-700 pt-4">
                 <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-200">תצוגה מקדימה</h3>
@@ -300,8 +319,11 @@
         </div>
     </div>
 
+    <script src="src/planner-state.js"></script>
     <script src="src/optimizer.js"></script>
+    <script src="src/routing.js"></script>
     <script src="src/geocode.js"></script>
+    <script src="src/address-picker.js"></script>
 
     <script>
         let intermediateLocations = [];
@@ -310,6 +332,10 @@
         let lastOptimizedRoute = [];
         let activeStep = 1;
         let draggedIntermediateIndex = null;
+        let draftReady = false;
+        let messageTimeout;
+        let saveSuccessTimeout;
+        let panelOpener;
 
         const THEME_STORAGE_KEY = 'preferredTheme';
         const themeToggleBtn = document.getElementById('themeToggleBtn');
@@ -336,7 +362,6 @@
         const saveSuccess = document.getElementById('saveSuccess');
         const savedRoutesToggleBtn = document.getElementById('savedRoutesToggleBtn');
         const savedRoutesCount = document.getElementById('savedRoutesCount');
-        const savedRoutesHint = document.getElementById('savedRoutesHint');
         const openSavedRoutesPanelBtn = document.getElementById('openSavedRoutesPanelBtn');
         const savedRoutesPanel = document.getElementById('savedRoutesPanel');
         const closeSavedRoutesPanelBtn = document.getElementById('closeSavedRoutesPanelBtn');
@@ -358,10 +383,10 @@
         const stepCards = Array.from(document.querySelectorAll('.step-card'));
 
         function resolvePreferredTheme() {
-            const stored = localStorage.getItem(THEME_STORAGE_KEY);
-            if (stored === 'dark' || stored === 'light') {
-                return stored;
-            }
+            try {
+                const stored = localStorage.getItem(THEME_STORAGE_KEY);
+                if (stored === 'dark' || stored === 'light') return stored;
+            } catch { /* Storage may be disabled. */ }
             if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
                 return 'dark';
             }
@@ -384,18 +409,15 @@
         themeToggleBtn.addEventListener('click', () => {
             const currentTheme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
             const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
             applyTheme(nextTheme);
+            try { localStorage.setItem(THEME_STORAGE_KEY, nextTheme); } catch { /* Session-only theme. */ }
         });
 
         applyTheme(resolvePreferredTheme());
 
-        startAddressInput.addEventListener('input', () => updateSuggestions(startAddressInput, startSuggestions));
-        endAddressInput.addEventListener('input', () => updateSuggestions(endAddressInput, endSuggestions));
-        intermediateAddressInput.addEventListener('input', () => updateSuggestions(intermediateAddressInput, intermediateSuggestions));
 
-        const TSP_MAX_INTERMEDIATE_POINTS = 8;
         const SAVED_ROUTES_KEY = 'savedRoutes';
+        const DRAFT_KEY = 'route-optimization:draft:v1';
 
         function showMessage(message, type = 'info') {
             const palette = {
@@ -404,11 +426,15 @@
                 error: 'bg-rose-50 text-rose-700 border border-rose-100 dark:bg-rose-900/40 dark:text-rose-200 dark:border-rose-700'
             };
             const icon = type === 'success' ? '✅' : type === 'error' ? '⚠️' : 'ℹ️';
-            messageBox.textContent = `${icon} ${message}`;
-            messageBox.className = `mt-4 p-3 rounded-xl ${palette[type] || palette.info}`;
-            messageBox.classList.remove('hidden');
-            setTimeout(() => {
-                messageBox.classList.add('hidden');
+            const panelMessage = document.getElementById('panelMessage');
+            const target = savedRoutesPanel.classList.contains('hidden') ? messageBox : panelMessage;
+            messageBox.classList.add('hidden');
+            panelMessage.classList.add('hidden');
+            target.textContent = `${icon} ${message}`;
+            target.className = `mt-4 p-3 rounded-xl ${palette[type] || palette.info}`;
+            clearTimeout(messageTimeout);
+            messageTimeout = setTimeout(() => {
+                target.classList.add('hidden');
             }, 4500);
         }
 
@@ -418,18 +444,21 @@
                 const step = Number(card.dataset.step);
                 const isActive = step === stepNumber;
                 card.dataset.active = isActive ? 'true' : 'false';
+                card.querySelector('[data-step-toggle]').setAttribute('aria-expanded', String(isActive));
                 const body = card.querySelector('.step-body');
                 if (body) {
                     body.classList.toggle('hidden', !isActive);
                 }
             });
+            saveDraft();
         }
 
         function updateStepProgress() {
             const startComplete = Boolean(startLocation);
             const endComplete = Boolean(endLocation);
             const intermediateComplete = intermediateLocations.length > 0;
-            const savedComplete = loadSavedRoutes().length > 0;
+            const current = {startLocation, intermediateLocations, endLocation};
+            const savedComplete = loadSavedRoutes().some(route => PlannerState.sameInputs(route, current));
 
             stepCards.forEach((card) => {
                 const step = Number(card.dataset.step);
@@ -450,14 +479,8 @@
             startStepStatus.textContent = formatLocationStatus(startLocation, '⏳ עדיין לא נבחרה');
             endStepStatus.textContent = formatLocationStatus(endLocation, '⏳ עדיין לא נבחרה');
             intermediateStepStatus.textContent = intermediateComplete ? `✔️ ${intermediateLocations.length} עצירות` : '➕ הוספה חופשית';
-            saveStepStatus.textContent = savedComplete ? '✔️ יש מסלולים שמורים' : '💾 עדיין לא נשמר';
+            saveStepStatus.textContent = savedComplete ? '✔️ המסלול הזה נשמר' : '💾 עדיין לא נשמר';
 
-            if (startComplete && activeStep === 1) {
-                setActiveStep(2);
-            }
-            if (startComplete && endComplete && activeStep === 2) {
-                setActiveStep(3);
-            }
         }
 
         document.querySelectorAll('[data-step-toggle]').forEach((button) => {
@@ -468,31 +491,56 @@
         });
 
         function addIntermediateLocation(locationData) {
-            const isDuplicate = intermediateLocations.some(loc =>
-                loc.address === locationData.address ||
-                (Math.abs(loc.lat - locationData.lat) < 0.0001 && Math.abs(loc.lng - locationData.lng) < 0.0001)
-            );
-            const isStartOrEnd = (startLocation && startLocation.address === locationData.address) ||
-                                 (endLocation && endLocation.address === locationData.address);
-
-            if (isDuplicate || isStartOrEnd) {
+            const points = [startLocation, ...intermediateLocations, endLocation];
+            if (points.some(loc => loc && loc.lat === locationData.lat && loc.lng === locationData.lng)) {
                 showMessage('המיקום הזה כבר מופיע ברשימה שלך.', 'info');
-                return;
+                return false;
             }
 
             intermediateLocations.push(locationData);
             updateIntermediateLocationsList();
             clearRouteDisplay();
+            return true;
         }
 
-        function loadSavedRoutes() {
+        function currentRoute() {
+            return PlannerState.snapshot(startLocation, intermediateLocations, endLocation, lastOptimizedRoute);
+        }
+
+        function saveDraft() {
+            if (!draftReady) return;
+            const draft = {...currentRoute(), activeStep, name: saveRouteNameInput.value};
+            const warning = document.getElementById('draftWarning');
+            try {
+                localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+                warning.classList.add('hidden');
+            } catch {
+                warning.classList.remove('hidden');
+            }
+        }
+
+        function restoreDraft() {
+            try {
+                const draft = JSON.parse(localStorage.getItem(DRAFT_KEY));
+                if (PlannerState.validRoute(draft)) return draft;
+            } catch { /* An unreadable draft should not prevent a new trip. */ }
+            return null;
+        }
+
+        function loadSavedRoutes(forWrite = false) {
             try {
                 const raw = localStorage.getItem(SAVED_ROUTES_KEY);
                 if (!raw) return [];
                 const parsed = JSON.parse(raw);
-                return Array.isArray(parsed) ? parsed : [];
-            } catch (error) {
-                console.warn('Failed to read saved routes:', error);
+                if (!Array.isArray(parsed)) throw new Error('Invalid saved routes');
+                const valid = parsed.filter(r => PlannerState.validRoute(r) && typeof r.id === 'string');
+                if (forWrite && valid.length !== parsed.length) throw new Error('Invalid stored route');
+                return valid;
+            } catch {
+                if (forWrite) {
+                    showMessage('לא ניתן לקרוא את המסלולים השמורים. השינוי לא נשמר.', 'error');
+                    return null;
+                }
                 return [];
             }
         }
@@ -500,9 +548,10 @@
         function persistSavedRoutes(routes) {
             try {
                 localStorage.setItem(SAVED_ROUTES_KEY, JSON.stringify(routes));
-            } catch (error) {
-                console.warn('Failed to save routes:', error);
+                return true;
+            } catch {
                 showMessage('לא ניתן לשמור מסלולים בדפדפן הזה.', 'error');
+                return false;
             }
         }
 
@@ -513,70 +562,57 @@
             return `מסלול ${datePart} ${timePart}`;
         }
 
+        function element(tag, className, text) {
+            const node = document.createElement(tag);
+            node.className = className;
+            if (text !== undefined) node.textContent = text;
+            return node;
+        }
+
         function updateSavedRoutesList() {
             const routes = loadSavedRoutes();
-            savedRoutesList.innerHTML = '';
-            if (routes.length === 0) {
-                savedRoutesList.innerHTML = '<div class="text-sm text-slate-400 dark:text-slate-400 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl p-3">עדיין אין מסלולים שמורים.</div>';
-                savedRoutesToggleBtn.classList.add('hidden');
-                savedRoutesHint.classList.remove('hidden');
-                savedRoutesCount.textContent = '0';
-                openSavedRoutesPanelBtn.disabled = true;
+            savedRoutesList.replaceChildren();
+            savedRoutesToggleBtn.classList.toggle('hidden', !routes.length);
+            savedRoutesCount.textContent = routes.length;
+            openSavedRoutesPanelBtn.disabled = !routes.length;
+            if (!routes.length) {
+                savedRoutesList.append(element('p', 'p-3 text-sm', 'עדיין אין מסלולים שמורים.'));
                 renderRoutePreview(null);
-                updateStepProgress();
-                return;
             }
-
-            savedRoutesToggleBtn.classList.remove('hidden');
-            savedRoutesHint.classList.add('hidden');
-            savedRoutesCount.textContent = routes.length.toString();
-            openSavedRoutesPanelBtn.disabled = false;
-
-            routes.forEach((route) => {
-                const listItem = document.createElement('div');
-                const totalPoints = [route.startLocation, ...(route.intermediateLocations || []), route.endLocation].filter(Boolean).length;
-                listItem.className = 'bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl p-4 flex flex-col gap-3';
-                listItem.innerHTML = `
-                    <div>
-                        <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">${route.name}</p>
-                        <p class="text-xs text-slate-400 dark:text-slate-400">${totalPoints} נקודות במסלול</p>
-                    </div>
-                    <div class="flex flex-wrap gap-2">
-                        <button data-id="${route.id}" class="load-saved-route-btn bg-indigo-50 text-indigo-700 hover:bg-indigo-100 dark:bg-indigo-900/40 dark:text-indigo-200 dark:hover:bg-indigo-900/60 text-sm px-3 py-2 rounded-lg">טען</button>
-                        <button data-id="${route.id}" class="preview-saved-route-btn bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600 text-sm px-3 py-2 rounded-lg">תצוגה מקדימה</button>
-                        <button data-id="${route.id}" class="delete-saved-route-btn text-slate-400 hover:text-rose-500 dark:text-slate-400 dark:hover:text-rose-300 text-sm px-3 py-2 rounded-lg">מחק</button>
-                    </div>
-                `;
-                savedRoutesList.appendChild(listItem);
-            });
-
+            for (const route of routes) {
+                const count = [route.startLocation, ...route.intermediateLocations, route.endLocation].filter(Boolean).length;
+                const card = element('div', 'bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl p-4');
+                const actions = element('div', 'mt-2 flex flex-wrap gap-2');
+                for (const [cls, label] of [['load-saved-route-btn', 'טען'], ['preview-saved-route-btn', 'תצוגה מקדימה'], ['delete-saved-route-btn', 'מחק']]) {
+                    const button = element('button', cls + ' min-h-[44px] bg-slate-100 dark:bg-slate-700 text-sm px-3 py-2 rounded-lg', label);
+                    button.dataset.id = route.id;
+                    actions.append(button);
+                }
+                card.append(element('p', 'text-sm font-semibold', route.name),
+                    element('p', 'text-xs text-slate-500 dark:text-slate-300', count + ' נקודות במסלול'), actions);
+                savedRoutesList.append(card);
+            }
             updateStepProgress();
         }
 
         function saveCurrentRoute() {
-            const hasAnyLocation = startLocation || endLocation || intermediateLocations.length > 0;
-            if (!hasAnyLocation) {
-                showMessage('בחר לפחות נקודת התחלה או יעד כדי לשמור.', 'info');
+            clearTimeout(saveSuccessTimeout);
+            saveSuccess.classList.add('hidden');
+            if (!startLocation && !endLocation && !intermediateLocations.length) {
+                showMessage('בחר לפחות נקודה אחת כדי לשמור.', 'info');
                 return;
             }
-
+            const routes = loadSavedRoutes(true);
+            if (!routes) return;
             const name = saveRouteNameInput.value.trim() || buildDefaultRouteName();
-            const routes = loadSavedRoutes();
-            const newRoute = {
-                id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-                name,
-                startLocation,
-                endLocation,
-                intermediateLocations: [...intermediateLocations]
-            };
-
-            routes.unshift(newRoute);
-            persistSavedRoutes(routes);
+            const id = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+            if (!persistSavedRoutes([{id, name, ...currentRoute()}, ...routes])) return;
             saveRouteNameInput.value = '';
+            saveDraft();
             updateSavedRoutesList();
             saveSuccess.classList.remove('hidden');
             saveSuccess.classList.add('save-success');
-            setTimeout(() => {
+            saveSuccessTimeout = setTimeout(() => {
                 saveSuccess.classList.add('hidden');
                 saveSuccess.classList.remove('save-success');
             }, 2500);
@@ -584,40 +620,45 @@
         }
 
         function loadRouteById(routeId) {
-            const routes = loadSavedRoutes();
-            const route = routes.find((item) => item.id === routeId);
+            const route = loadSavedRoutes().find(item => item.id === routeId);
             if (!route) {
                 showMessage('לא נמצא מסלול לשחזור.', 'error');
                 return;
             }
-
-            startLocation = route.startLocation;
-            endLocation = route.endLocation;
-            intermediateLocations = Array.isArray(route.intermediateLocations) ? [...route.intermediateLocations] : [];
-            updateFixedLocationDisplays();
-            updateIntermediateLocationsList();
-            clearRouteDisplay();
+            resetAddressPickers();
+            saveRouteNameInput.value = '';
+            applyRoute(route, 3);
+            saveDraft();
+            closeSavedRoutesPanel();
+            stepCards[2].querySelector('[data-step-toggle]').focus();
             showMessage('המסלול נטען. אפשר להמשיך לעריכה.', 'success');
-            setActiveStep(3);
         }
 
         function deleteRouteById(routeId) {
-            const routes = loadSavedRoutes().filter((route) => route.id !== routeId);
-            persistSavedRoutes(routes);
+            const routes = loadSavedRoutes(true);
+            if (!routes || !persistSavedRoutes(routes.filter(route => route.id !== routeId))) return;
             updateSavedRoutesList();
+            renderRoutePreview(null);
+            if (openSavedRoutesPanelBtn.disabled) closeSavedRoutesPanel();
+            else closeSavedRoutesPanelBtn.focus();
             showMessage('המסלול הוסר מהשמירה.', 'info');
         }
 
         function renderIntermediateChip(location, index) {
-            const chip = document.createElement('div');
-            chip.className = 'chip flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-full px-3 py-1.5 text-sm text-slate-600 dark:text-slate-200 shadow-sm';
-            chip.setAttribute('draggable', 'true');
+            const chip = element('div', 'chip flex flex-wrap items-center justify-between gap-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-xl px-2 py-1 text-sm');
+            chip.draggable = true;
             chip.dataset.index = index;
-            chip.innerHTML = `
-                <span class="text-slate-400 dark:text-slate-500 cursor-grab">⠿</span>
-                <span>${location.address}</span>
-                <button data-index="${index}" class="remove-intermediate-btn text-slate-400 hover:text-rose-500 dark:text-slate-500 dark:hover:text-rose-300 text-xs">✕</button>
-            `;
+            const controls = element('div', 'flex items-center');
+            for (const [action, icon, label] of [['up', '↑', 'העלה'], ['down', '↓', 'הורד'], ['remove', '✕', 'הסר']]) {
+                const button = element('button', 'stop-control hover:bg-slate-100 dark:hover:bg-slate-700', icon);
+                button.type = 'button';
+                button.dataset.action = action;
+                button.setAttribute('aria-label', label + ' את ' + location.address);
+                if (action === 'remove') button.classList.add('remove-intermediate-btn');
+                button.disabled = (action === 'up' && index === 0) || (action === 'down' && index === intermediateLocations.length - 1);
+                controls.append(button);
+            }
+            chip.append(element('span', 'break-words min-w-0 flex-1', (index + 1) + '. ' + location.address), controls);
             return chip;
         }
 
@@ -635,14 +676,10 @@
         }
 
         function updateFixedLocationDisplays() {
-            currentStartLocationDiv.innerHTML = startLocation
-                ? `<span class="inline-flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-100 dark:text-emerald-200 dark:bg-emerald-900/40 dark:border-emerald-700 rounded-full px-3 py-1">✔️ ${startLocation.address}</span>`
-                : '<span class="inline-flex items-center gap-2 text-sm text-slate-400 dark:text-slate-400 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-full px-3 py-1">⏳ בחר נקודת התחלה</span>';
-
-            currentEndLocationDiv.innerHTML = endLocation
-                ? `<span class="inline-flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-100 dark:text-emerald-200 dark:bg-emerald-900/40 dark:border-emerald-700 rounded-full px-3 py-1">✔️ ${endLocation.address}</span>`
-                : '<span class="inline-flex items-center gap-2 text-sm text-slate-400 dark:text-slate-400 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-full px-3 py-1">⏳ בחר נקודת סיום</span>';
-
+            currentStartLocationDiv.textContent = formatLocationStatus(startLocation, '⏳ בחר נקודת התחלה');
+            currentEndLocationDiv.textContent = formatLocationStatus(endLocation, '⏳ בחר נקודת סיום');
+            clearStartLocationBtn.hidden = !startLocation;
+            clearEndLocationBtn.hidden = !endLocation;
             updateStepProgress();
         }
 
@@ -653,136 +690,100 @@
             return `✔️ ${location.address}`;
         }
 
-        function buildGeocodeFailureMessage(error) {
-            const baseMessage = error instanceof Error && error.message ? error.message : 'שגיאה בחיפוש הכתובת. נסה שוב.';
-            if (window.location.protocol === 'file:') {
-                return `${baseMessage} אם פתחת את הקובץ מקומית, הפעל שרת מקומי או השתמש בדמו המקוון.`;
-            }
-            return baseMessage;
+        const countryFilters = Array.from(document.querySelectorAll('[data-israel-only]'));
+        const israelOnly = () => countryFilters[0].checked;
+        try {
+            const preferred = localStorage.getItem('route-optimizer-israel-only') === 'true';
+            countryFilters.forEach(filter => { filter.checked = preferred; });
+        } catch { /* Search also works when browser storage is disabled. */ }
+
+        function selectStop(location) {
+            if (!addIntermediateLocation(location)) return false;
+            showMessage('עצירת הביניים נוספה.', 'success');
+            return true;
         }
 
-        async function geocodeAddressWithFallback(address, lang) {
-            const primary = await geocodeAddress(address, lang);
-            if (primary) {
-                return { ...primary, wasNumberStripped: false };
-            }
-            const stripped = stripHouseNumber(address);
-            if (!stripped || stripped === address) {
-                return null;
-            }
-            const fallback = await geocodeAddress(stripped, lang);
-            if (!fallback) {
-                return null;
-            }
-            return { ...fallback, wasNumberStripped: true, strippedQuery: stripped };
-        }
-
-        function decorateLocationResult(locationData) {
-            if (!locationData) {
-                return null;
-            }
-            if (locationData.wasNumberStripped) {
-                return {
-                    ...locationData,
-                    address: `${locationData.address} (ללא מספר)`
-                };
-            }
-            return locationData;
-        }
-
-        setStartLocationBtn.addEventListener('click', async () => {
-            const address = startAddressInput.value.trim();
-            if (address) {
-                showMessage('מחפש נקודת התחלה...', 'info');
-                try {
-                    const fullAddress = getFullAddress(startAddressInput);
-                    const locData = await geocodeAddressWithFallback(fullAddress, detectLanguage(fullAddress));
-                    if (locData) {
-                        startLocation = decorateLocationResult(locData);
-                        updateFixedLocationDisplays();
-                        startAddressInput.value = '';
-                        showMessage(locData.wasNumberStripped ? 'נקודת התחלה נבחרה ללא מספר.' : 'נקודת התחלה נבחרה.', 'success');
-                        clearRouteDisplay();
-                    } else {
-                        showMessage('לא נמצאה כתובת עבור נקודת ההתחלה.', 'error');
-                    }
-                } catch (error) {
-                    showMessage(buildGeocodeFailureMessage(error), 'error');
-                }
-            } else {
-                showMessage('כתוב כתובת כדי לבחור נקודת התחלה.', 'info');
-            }
+        const resetStartSearch = mountAddressSearch(startAddressInput, setStartLocationBtn, startSuggestions, israelOnly, location => {
+            startLocation = location;
+            updateFixedLocationDisplays();
+            setActiveStep(endLocation ? 3 : 2);
+            clearRouteDisplay();
+            showMessage('נקודת ההתחלה נבחרה.', 'success');
         });
+        const resetEndSearch = mountAddressSearch(endAddressInput, setEndLocationBtn, endSuggestions, israelOnly, location => {
+            endLocation = location;
+            updateFixedLocationDisplays();
+            setActiveStep(3);
+            clearRouteDisplay();
+            showMessage('נקודת הסיום נבחרה.', 'success');
+        });
+        const resetStopSearch = mountAddressSearch(intermediateAddressInput, addIntermediateLocationBtn, intermediateSuggestions, israelOnly, selectStop);
+        const messageImport = mountMessageImport(israelOnly, selectStop);
+
+        function resetAddressPickers() {
+            resetStartSearch();
+            resetEndSearch();
+            resetStopSearch();
+            startAddressInput.value = '';
+            endAddressInput.value = '';
+            intermediateAddressInput.value = '';
+            messageImport.clear();
+        }
+
+        countryFilters.forEach(filter => filter.addEventListener('change', () => {
+            countryFilters.forEach(other => { other.checked = filter.checked; });
+            resetStartSearch();
+            resetEndSearch();
+            resetStopSearch();
+            messageImport.resetSearches();
+            try { localStorage.setItem('route-optimizer-israel-only', String(filter.checked)); } catch {}
+        }));
 
         clearStartLocationBtn.addEventListener('click', () => {
+            resetStartSearch();
+            startAddressInput.value = '';
             startLocation = null;
             updateFixedLocationDisplays();
-            showMessage('נקודת ההתחלה הוסרה.', 'info');
             clearRouteDisplay();
+            showMessage('נקודת ההתחלה הוסרה.', 'info');
             setActiveStep(1);
         });
 
-        setEndLocationBtn.addEventListener('click', async () => {
-            const address = endAddressInput.value.trim();
-            if (address) {
-                showMessage('מחפש נקודת סיום...', 'info');
-                try {
-                    const fullAddress = getFullAddress(endAddressInput);
-                    const locData = await geocodeAddressWithFallback(fullAddress, detectLanguage(fullAddress));
-                    if (locData) {
-                        endLocation = decorateLocationResult(locData);
-                        updateFixedLocationDisplays();
-                        endAddressInput.value = '';
-                        showMessage(locData.wasNumberStripped ? 'נקודת סיום נבחרה ללא מספר.' : 'נקודת סיום נבחרה.', 'success');
-                        clearRouteDisplay();
-                    } else {
-                        showMessage('לא נמצאה כתובת עבור נקודת הסיום.', 'error');
-                    }
-                } catch (error) {
-                    showMessage(buildGeocodeFailureMessage(error), 'error');
-                }
-            } else {
-                showMessage('כתוב כתובת כדי לבחור נקודת סיום.', 'info');
-            }
-        });
-
         clearEndLocationBtn.addEventListener('click', () => {
+            resetEndSearch();
+            endAddressInput.value = '';
             endLocation = null;
             updateFixedLocationDisplays();
-            showMessage('נקודת הסיום הוסרה.', 'info');
             clearRouteDisplay();
+            showMessage('נקודת הסיום הוסרה.', 'info');
             setActiveStep(2);
         });
 
-        addIntermediateLocationBtn.addEventListener('click', async () => {
-            const address = intermediateAddressInput.value.trim();
-            if (address) {
-                showMessage('מחפש עצירת ביניים...', 'info');
-                try {
-                    const fullAddress = getFullAddress(intermediateAddressInput);
-                    const locData = await geocodeAddressWithFallback(fullAddress, detectLanguage(fullAddress));
-                    if (locData) {
-                        addIntermediateLocation(decorateLocationResult(locData));
-                        intermediateAddressInput.value = '';
-                        showMessage(locData.wasNumberStripped ? 'עצירת ביניים נוספה ללא מספר.' : 'עצירת ביניים נוספה.', 'success');
-                    } else {
-                        showMessage('לא נמצאה כתובת עבור החיפוש.', 'error');
-                    }
-                } catch (error) {
-                    showMessage(buildGeocodeFailureMessage(error), 'error');
-                }
-            } else {
-                showMessage('כתוב כתובת כדי להוסיף עצירה.', 'info');
-            }
-        });
+        function moveStop(from, to) {
+            const [stop] = intermediateLocations.splice(from, 1);
+            intermediateLocations.splice(to, 0, stop);
+            updateIntermediateLocationsList();
+            clearRouteDisplay();
+        }
 
         intermediateLocationsList.addEventListener('click', (event) => {
-            if (event.target.classList.contains('remove-intermediate-btn')) {
-                const indexToRemove = parseInt(event.target.dataset.index);
-                intermediateLocations.splice(indexToRemove, 1);
+            const button = event.target.closest('button[data-action]');
+            if (!button || button.disabled) return;
+            const index = Number(button.closest('.chip').dataset.index);
+            let focusIndex = index;
+            if (button.dataset.action === 'remove') {
+                intermediateLocations.splice(index, 1);
                 updateIntermediateLocationsList();
                 clearRouteDisplay();
+                focusIndex = Math.min(index, intermediateLocations.length - 1);
+            } else {
+                focusIndex += button.dataset.action === 'up' ? -1 : 1;
+                moveStop(index, focusIndex);
             }
+            const chip = intermediateLocationsList.children[focusIndex];
+            const nextButton = chip?.querySelector('[data-action="' + button.dataset.action + '"]:enabled')
+                || chip?.querySelector('button:enabled');
+            (nextButton || intermediateAddressInput).focus();
         });
 
         intermediateLocationsList.addEventListener('dragstart', (event) => {
@@ -811,14 +812,12 @@
             if (!targetChip || draggedIntermediateIndex === null) return;
             const dropIndex = Number(targetChip.dataset.index);
             if (dropIndex === draggedIntermediateIndex) return;
-            const [moved] = intermediateLocations.splice(draggedIntermediateIndex, 1);
-            intermediateLocations.splice(dropIndex, 0, moved);
-            updateIntermediateLocationsList();
-            clearRouteDisplay();
+            moveStop(draggedIntermediateIndex, dropIndex);
             showMessage('הסדר עודכן.', 'success');
         });
 
         saveRouteBtn.addEventListener('click', saveCurrentRoute);
+        saveRouteNameInput.addEventListener('input', saveDraft);
 
         savedRoutesList.addEventListener('click', (event) => {
             if (event.target.classList.contains('load-saved-route-btn')) {
@@ -837,124 +836,116 @@
             }
         });
 
+        const mapsSegments = document.getElementById('mapsSegments');
+        const mapsSegmentLinks = document.getElementById('mapsSegmentLinks');
+        let pendingCalculation = null;
+
+        function showRouteStatus(text) {
+            const item = document.createElement('li');
+            item.className = 'text-sm text-slate-500 dark:text-slate-300';
+            item.textContent = text;
+            optimizedRouteList.replaceChildren(item);
+        }
+
         function clearRouteDisplay() {
-            optimizedRouteList.innerHTML = '<li class="text-sm text-slate-400 dark:text-slate-400">המסלול יופיע כאן לאחר חישוב.</li>';
+            if (pendingCalculation) pendingCalculation.abort();
+            pendingCalculation = null;
+            showRouteStatus('המסלול יופיע כאן לאחר חישוב.');
             openInGoogleMapsBtn.classList.add('hidden');
+            mapsSegments.classList.add('hidden');
+            mapsSegmentLinks.replaceChildren();
             lastOptimizedRoute = [];
+            saveDraft();
         }
 
-        async function getOSRMTable(coords) {
-            const coordinatesString = coords.map(loc => `${loc.lng},${loc.lat}`).join(';');
-            const url = `https://router.project-osrm.org/table/v1/driving/${coordinatesString}?sources=all&destinations=all`;
+        function renderOptimizedRoute(route) {
+            lastOptimizedRoute = route;
+            optimizedRouteList.replaceChildren();
+            route.forEach((location, index) => {
+                const item = document.createElement('li');
+                item.className = 'py-1 px-2 border-b border-slate-100 dark:border-slate-700 last:border-b-0 text-sm text-slate-700 dark:text-slate-200';
+                item.textContent = `${index + 1}. ${location.address}`;
+                optimizedRouteList.appendChild(item);
+            });
 
-            try {
-                const response = await fetch(url);
-                if (!response.ok) {
-                    throw new Error(`OSRM Table API error: ${response.statusText} (Status: ${response.status})`);
-                }
-                const data = await response.json();
-                return data.durations;
-            } catch (error) {
-                console.error('Error fetching OSRM table:', error);
-                showMessage('שגיאה בחישוב זמני נסיעה. נסה שוב מאוחר יותר.', 'error');
-                return null;
-            }
-        }
-
-        function openInGoogleMaps() {
-            if (lastOptimizedRoute.length < 2) {
-                showMessage('אין מסלול מחושב לפתיחה במפות Google.', 'info');
-                return;
-            }
-
-            let origin = '';
-            let destination = '';
-            let waypoints = [];
-
-            if (lastOptimizedRoute.length === 2) {
-                origin = `${lastOptimizedRoute[0].lat},${lastOptimizedRoute[0].lng}`;
-                destination = `${lastOptimizedRoute[1].lat},${lastOptimizedRoute[1].lng}`;
-            } else {
-                origin = `${lastOptimizedRoute[0].lat},${lastOptimizedRoute[0].lng}`;
-                destination = `${lastOptimizedRoute[lastOptimizedRoute.length - 1].lat},${lastOptimizedRoute[lastOptimizedRoute.length - 1].lng}`;
-                waypoints = lastOptimizedRoute.slice(1, -1).map(loc => `${loc.lat},${loc.lng}`);
-            }
-
-            let googleMapsUrl = `https://www.google.com/maps/dir/?api=1`;
-            googleMapsUrl += `&origin=${encodeURIComponent(origin)}`;
-            googleMapsUrl += `&destination=${encodeURIComponent(destination)}`;
-            if (waypoints.length > 0) {
-                googleMapsUrl += `&waypoints=${encodeURIComponent(waypoints.join('|'))}`;
-            }
-            googleMapsUrl += `&travelmode=driving`;
-
-            window.open(googleMapsUrl, '_blank');
+            const canOpenFullRoute = Boolean(routing.mapsUrl(route));
+            openInGoogleMapsBtn.classList.toggle('hidden', !canOpenFullRoute);
+            mapsSegmentLinks.replaceChildren();
+            const segments = routing.mobileSegments(route);
+            mapsSegments.classList.toggle('hidden', segments.length < 2);
+            mapsSegments.open = !canOpenFullRoute;
+            segments.forEach((points, index) => {
+                const link = document.createElement('a');
+                link.className = 'block py-2 px-3 underline';
+                link.href = routing.mapsUrl(points);
+                link.target = '_blank';
+                link.rel = 'noopener noreferrer';
+                link.textContent = `מקטע ${index + 1} מתוך ${segments.length} · מ־${points[0].address} עד ${points[points.length - 1].address}`;
+                mapsSegmentLinks.appendChild(link);
+            });
         }
 
         optimizeRouteBtn.addEventListener('click', async () => {
-            let allPointsForOSRM = [];
-            if (startLocation) allPointsForOSRM.push(startLocation);
-            allPointsForOSRM = allPointsForOSRM.concat(intermediateLocations);
-            if (endLocation) allPointsForOSRM.push(endLocation);
-
-            if (allPointsForOSRM.length < 2) {
-                showMessage('בחר לפחות שתי נקודות כדי לחשב מסלול.', 'info');
-                optimizedRouteList.innerHTML = '<li class="text-sm text-slate-400 dark:text-slate-400">הוסף לפחות שתי נקודות.</li>';
-                clearRouteDisplay();
+            clearRouteDisplay();
+            const start = startLocation;
+            const end = endLocation;
+            const stops = intermediateLocations.slice();
+            const points = [start, ...stops, end].filter(Boolean);
+            if (points.length < 2) {
+                showRouteStatus('הוסף לפחות שתי נקודות כדי לחשב מסלול.');
                 return;
             }
 
-            if (intermediateLocations.length <= TSP_MAX_INTERMEDIATE_POINTS) {
-                showMessage('מחשב מסלול מדויק לנקודות שבחרת...', 'info');
-            } else {
-                showMessage('מחשב מסלול מהיר לנקודות שבחרת...', 'info');
-            }
-            optimizedRouteList.innerHTML = '<li class="text-sm text-slate-400 dark:text-slate-400">בטעינה...</li>';
-            openInGoogleMapsBtn.classList.add('hidden');
-
+            const exact = stops.length <= MAX_EXACT_STOPS;
+            showRouteStatus(exact ? 'מחשב מסלול מדויק…' : 'מחשב מסלול משוער…');
+            const controller = new AbortController();
+            pendingCalculation = controller;
+            const timeout = setTimeout(() => controller.abort(), 20000);
             try {
-                const durationsMatrix = await getOSRMTable(allPointsForOSRM);
-
-                if (!durationsMatrix) {
-                    optimizedRouteList.innerHTML = '<li class="text-sm text-slate-400 dark:text-slate-400">שגיאה בחישוב המסלול.</li>';
+                const matrix = await routing.getOSRMTable(points, controller.signal);
+                if (pendingCalculation !== controller) return;
+                const solve = exact ? solveTSP : optimizeRouteNearestNeighbor;
+                const route = solve(stops, matrix, start, end, points);
+                if (route.length !== points.length) {
+                    showRouteStatus(exact
+                        ? 'אין מסלול נסיעה שעובר בכל הנקודות שנבחרו. בדקו את הכתובות.'
+                        : 'החישוב המקורב לא מצא סדר נסיעה שעובר בכל הנקודות. נסו לשנות את העצירות.');
                     return;
                 }
-
-                let optimizedRoute;
-                if (intermediateLocations.length <= TSP_MAX_INTERMEDIATE_POINTS) {
-                    optimizedRoute = solveTSP(intermediateLocations, durationsMatrix, startLocation, endLocation, allPointsForOSRM);
-                } else {
-                    optimizedRoute = optimizeRouteNearestNeighbor(intermediateLocations, durationsMatrix, startLocation, endLocation, allPointsForOSRM);
-                }
-
-                optimizedRouteList.innerHTML = '';
-                optimizedRoute.forEach((location, index) => {
-                    const listItem = document.createElement('li');
-                    listItem.className = 'py-1 px-2 border-b border-slate-100 dark:border-slate-700 last:border-b-0 text-sm text-slate-700 dark:text-slate-200';
-                    listItem.textContent = `${index + 1}. ${location.address}`;
-                    optimizedRouteList.appendChild(listItem);
-                });
-
-                lastOptimizedRoute = optimizedRoute;
-                openInGoogleMapsBtn.classList.remove('hidden');
-
-                showMessage('המסלול מוכן! אפשר לפתוח במפות Google.', 'success');
-
+                renderOptimizedRoute(route);
+                saveDraft();
+                showMessage(exact ? 'המסלול מוכן.' : 'המסלול המשוער מוכן.', 'success');
             } catch (error) {
-                console.error('Optimization process failed:', error);
-                showMessage('שגיאה באופטימיזציה של המסלול. בדוק חיבור אינטרנט וכתובות.', 'error');
-                optimizedRouteList.innerHTML = '<li class="text-sm text-slate-400 dark:text-slate-400">שגיאה בחישוב המסלול.</li>';
+                if (pendingCalculation !== controller) return;
+                const message = controller.signal.aborted ? 'שירות הניתוב לא ענה בזמן. נסו שוב.'
+                    : error instanceof TypeError ? 'לא ניתן להתחבר לשירות הניתוב. בדקו את חיבור האינטרנט.'
+                    : error instanceof SyntaxError ? 'שירות הניתוב החזיר תשובה לא תקינה. נסו שוב.'
+                    : error.message;
+                showRouteStatus(message);
+            } finally {
+                clearTimeout(timeout);
+                if (pendingCalculation === controller) pendingCalculation = null;
             }
         });
 
-        openInGoogleMapsBtn.addEventListener('click', openInGoogleMaps);
+        openInGoogleMapsBtn.addEventListener('click', () => {
+            const url = routing.mapsUrl(lastOptimizedRoute);
+            if (url) window.open(url, '_blank', 'noopener,noreferrer');
+        });
 
         function openSavedRoutesPanel() {
+            panelOpener = document.activeElement;
+            document.getElementById('panelMessage').classList.add('hidden');
             savedRoutesPanel.classList.remove('hidden');
             savedRoutesPanel.setAttribute('aria-hidden', 'false');
+            document.getElementById('planner').inert = true;
+            closeSavedRoutesPanelBtn.focus();
         }
 
         function closeSavedRoutesPanel() {
+            document.getElementById('planner').inert = false;
+            const focusTarget = panelOpener?.offsetParent && !panelOpener.disabled ? panelOpener : themeToggleBtn;
+            focusTarget.focus();
             savedRoutesPanel.classList.add('hidden');
             savedRoutesPanel.setAttribute('aria-hidden', 'true');
         }
@@ -964,24 +955,31 @@
                 savedRoutePreview.textContent = 'בחר מסלול כדי לראות את הפרטים.';
                 return;
             }
-            const previewStops = Array.isArray(route.intermediateLocations) && route.intermediateLocations.length > 0
-                ? route.intermediateLocations.map((stop) => `<li>${stop.address}</li>`).join('')
-                : '<li class="text-slate-400 dark:text-slate-400">אין עצירות ביניים.</li>';
-            savedRoutePreview.innerHTML = `
-                <div class="space-y-2">
-                    <div><span class="font-semibold">נקודת התחלה:</span> ${route.startLocation ? route.startLocation.address : 'לא הוגדרה'}</div>
-                    <div><span class="font-semibold">נקודת סיום:</span> ${route.endLocation ? route.endLocation.address : 'לא הוגדרה'}</div>
-                    <div>
-                        <span class="font-semibold">עצירות ביניים:</span>
-                        <ul class="list-disc list-inside mt-1 space-y-1">${previewStops}</ul>
-                    </div>
-                </div>
-            `;
+            const stops = element('ul', 'list-disc list-inside space-y-1');
+            for (const stop of route.intermediateLocations) stops.append(element('li', '', stop.address));
+            if (!stops.childElementCount) stops.append(element('li', '', 'אין עצירות ביניים.'));
+            savedRoutePreview.replaceChildren(
+                element('p', '', 'נקודת התחלה: ' + (route.startLocation?.address || 'לא הוגדרה')),
+                element('p', '', 'נקודת סיום: ' + (route.endLocation?.address || 'לא הוגדרה')),
+                element('p', 'mt-2 font-semibold', 'עצירות ביניים:'), stops);
         }
 
         savedRoutesToggleBtn.addEventListener('click', openSavedRoutesPanel);
         openSavedRoutesPanelBtn.addEventListener('click', openSavedRoutesPanel);
         closeSavedRoutesPanelBtn.addEventListener('click', closeSavedRoutesPanel);
+        savedRoutesPanel.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') closeSavedRoutesPanel();
+            if (event.key !== 'Tab') return;
+            const buttons = Array.from(savedRoutesPanel.querySelectorAll('button:enabled'));
+            const first = buttons[0], last = buttons[buttons.length - 1];
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
+        });
         savedRoutesPanel.addEventListener('click', (event) => {
             if (event.target.matches('[data-saved-routes-close]')) {
                 closeSavedRoutesPanel();
@@ -996,11 +994,24 @@
             });
         }
 
-        updateIntermediateLocationsList();
-        updateFixedLocationDisplays();
+        function applyRoute(route, step) {
+            draftReady = false;
+            startLocation = route.startLocation || null;
+            intermediateLocations = [...route.intermediateLocations];
+            endLocation = route.endLocation || null;
+            updateFixedLocationDisplays();
+            updateIntermediateLocationsList();
+            clearRouteDisplay();
+            const restored = PlannerState.restoreOrder(route);
+            if (restored.length) renderOptimizedRoute(restored);
+            setActiveStep(Number.isInteger(step) && step >= 1 && step <= 4 ? step : 1);
+            draftReady = true;
+        }
+
+        const initialDraft = restoreDraft();
+        saveRouteNameInput.value = typeof initialDraft?.name === 'string' ? initialDraft.name : '';
+        applyRoute(initialDraft || {intermediateLocations: []}, initialDraft?.activeStep);
         updateSavedRoutesList();
-        clearRouteDisplay();
-        setActiveStep(1);
     </script>
 </body>
 </html>
