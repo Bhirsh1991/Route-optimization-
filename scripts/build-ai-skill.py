@@ -45,8 +45,21 @@ def package(path, members, check):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--check", action="store_true", help="verify both distributed packages match the source")
+    parser.add_argument("--check", action="store_true", help="verify the public instructions and both packages match the source")
     args = parser.parse_args()
+    guide = ROOT / "ai" / f"{SKILL}.txt"
+    source = (ROOT / FILES["SKILL.md"]).read_text(encoding="utf-8")
+    metadata, separator, body = source.partition("\n---\n")
+    if not separator or not metadata.startswith("---\n"):
+        raise SystemExit("Expected YAML front matter in SKILL.md")
+    # Publish the body as a static asset so GitHub Pages serves its text verbatim.
+    instructions = body.lstrip("\n")
+    if args.check:
+        if not guide.exists() or guide.read_text(encoding="utf-8") != instructions:
+            raise SystemExit(f"Stale instructions: {guide.name}. Run python scripts/build-ai-skill.py")
+    else:
+        guide.write_bytes(instructions.encode("utf-8"))
+    print(f"{'Verified' if args.check else 'Built'} {guide.name}")
     for target in ("gemini", "chatgpt"):
         path = ROOT / "ai" / f"{SKILL}-{target}.zip"
         package(path, contents(target == "chatgpt"), args.check)

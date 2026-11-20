@@ -40,9 +40,12 @@
                 <h2 id="quick">שימוש מהטלפון בלי התקנה</h2>
                 <p>העתיקו את ההוראה, הדביקו אותה בצ׳אט והוסיפו מתחתיה את הרשימה. כדאי לציין עיר ונקודות קבועות כשיש כאלה.</p>
                 <label class="sr-only" for="prompt">הוראה להדבקה בצ׳אט</label>
-                <textarea id="prompt" rows="4" readonly>הכן לי מסלול בעזרת אתר „מסלולים”. חלץ רק עיר, רחוב ומספר בית מכל עצירה. שמור על כל התחנות ועל יציאה וסיום אם ציינתי אותם. השמט שמות מקבלים, טלפונים, דירות, קומות והערות. אם יש לך את כלי route-planner של האתר וזמני נסיעה אמיתיים, השתמש בהם והחזר סדר מחושב וקישור לאתר. אחרת החזר קישור לבדיקה באתר עם הרשימה בסדר המקורי. בנה את הקישור מהבסיס https://bhirsh1991.github.io/Route-optimization-/#route=1 והוסף אחרי הסולמית פרמטרים באמצעות URLSearchParams או קידוד URL מקביל: city לעיר, start ליציאה, stop לכל עצירת ביניים בנפרד, end לסיום. השמט שדות שלא נמסרו. כלול רק כתובות, וקודד כל ערך פעם אחת. אם יש פחות משתי נקודות או יותר מ־25, בקש הבהרה ושמור על כל העצירות.</textarea>
+                <textarea id="prompt" rows="4" readonly>הכן לי מסלול מהרשימה שלמטה בעזרת הכלי של אתר „מסלולים”. ההוראות הרשמיות נמצאות כאן: https://bhirsh1991.github.io/Route-optimization-/ai/route-planner.txt
+חלץ רק עיר, רחוב ומספר בית. שמור על כל התחנות ועל נקודות היציאה והסיום שציינתי. השמט שמות מקבלים, טלפונים, דירות, קומות והערות. אם כלי האתר וזמני הנסיעה זמינים, החזר את הסדר שחישב הכלי, זמן נסיעה וקישורים לניווט ולאתר.
+אם נדרשת בחירה או שהכלים לא זמינים, החזר קישור לחיץ לרשימה המקורית באתר. בנה אותו מ־https://bhirsh1991.github.io/Route-optimization-/#route=1 והוסף באותו מקטע &amp;city= לעיר, &amp;start= ליציאה, &amp;stop= בנפרד לכל עצירה ו־&amp;end= לסיום. השמט שדות ריקים וקודד כל ערך פעם אחת כערך URL. הרשימה יכולה לכלול 2 עד 25 נקודות. אם חסרה כתובת או שהרשימה ארוכה מדי, שאל אותי לפני שתמשיך.</textarea>
                 <div class="actions"><button type="button" class="primary" id="copyPrompt">העתקת ההוראה</button><a href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer">פתיחת ChatGPT ↗</a><a href="https://gemini.google.com/" target="_blank" rel="noopener noreferrer">פתיחת Gemini ↗</a></div>
                 <p id="copyStatus" role="status" class="muted"></p>
+                <p><a href="route-planner.txt">פתיחת קובץ ההוראות לצ׳אט</a></p>
             </section>
             <section class="sheet" aria-labelledby="install">
                 <h2 id="install">חישוב בתוך הצ׳אט</h2>

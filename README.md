@@ -19,6 +19,8 @@ For numbered addresses in Netanya the planner cross-checks map pins against a lo
 
 Open the [mobile setup guide](https://bhirsh1991.github.io/Route-optimization-/ai/) for a copyable chat instruction and optional skill downloads. The instruction lets a chat turn a delivery list into an editable planner link. It accepts 2–25 addresses with optional fixed endpoints. The addresses travel in the URL fragment and are visible to anyone who gets the link. The planner waits for the user to confirm before searching or applying the new route.
 
+Chats with web access can read the [plain-text workflow](https://bhirsh1991.github.io/Route-optimization-/ai/route-planner.txt) directly.
+
 With the skill installed, a chat that can execute the bundled JavaScript and retrieve an OSRM driving-time table can also return a calculated order. The skill uses the same numbered-address reference for Netanya and the same optimizer as the website. Missing house numbers, ambiguous matches and unavailable tools lead to review in the browser. Maps and Waze are available after calculation there.
 
 ## Interface Highlights
