@@ -1,6 +1,6 @@
 // The build updates these two constants whenever the offline shell changes.
-const REVISION = 'c71be7fd12c1614c';
-const FILES = ["index.html","manifest.json","logo-small.webp","assets/app.css","assets/icon-192.png","assets/icon-512.png","src/address-picker.js","src/geocode.js","src/optimizer.js","src/planner-state.js","src/routing.js"];
+const REVISION = 'f3ab15ed8f1db6e1';
+const FILES = ["index.html","manifest.json","logo-small.webp","assets/app.css","assets/icon-192.png","assets/icon-512.png","src/address-picker.js","src/geocode.js","src/optimizer.js","src/planner-state.js","src/routing.js","src/search-area.js"];
 const scope = self.registration.scope;
 const prefix = 'route-optimizer:' + scope + ':';
 const cacheName = prefix + REVISION;

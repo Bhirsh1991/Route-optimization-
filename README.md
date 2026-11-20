@@ -6,10 +6,10 @@ A simple web application for planning an optimal travel route.
 
 ## Usage
 
-1. Open the [planner](https://bhirsh1991.github.io/Route-optimization-/) and search for a start, end or intermediate address. Select the matching result. The Israel-only filter is optional.
-2. To import deliveries, paste a message into the WhatsApp section, review each suggested address, and search for it. Contact previews stay on the device.
+1. Open the [planner](https://bhirsh1991.github.io/Route-optimization-/). Optionally enter one city for the trip or tap the location button to prioritize nearby results. The browser requests permission on that tap. The planner keeps an approximate location in memory for this visit and shares a search area when you search.
+2. Search for and select a start, end or intermediate address. For a delivery list, paste the copied WhatsApp messages, including timestamps and line breaks, in the import section. Review the extracted addresses and select each match. Contact and delivery details in the preview stay on the device.
 3. Compute the route. The planner minimizes travel time according to the OSRM driving matrix for up to 14 intermediate stops and uses a nearest-neighbor estimate for larger trips.
-4. Open the route in Google Maps. Five intermediate stops can open in one app link. For mobile browsers, use the alternative links with up to three intermediate stops per segment.
+4. Open the route in Google Maps using address names when available, or choose precise coordinates. Five intermediate stops can open in one app link. For mobile browsers, use the alternative links with up to three intermediate stops per segment.
 5. Your draft and its last calculated order are stored in this browser. Save a named route to keep multiple trips.
 
 ## Interface Highlights

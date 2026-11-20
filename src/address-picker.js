@@ -1,4 +1,4 @@
-function mountAddressSearch(input, searchButton, results, israelOnly, onPick, imported = false) {
+function mountAddressSearch(input, searchButton, results, searchContext, onPick, imported = false) {
   let version = 0;
   function reset() {
     version++;
@@ -24,7 +24,8 @@ function mountAddressSearch(input, searchButton, results, israelOnly, onPick, im
     searchButton.disabled = true;
     results.textContent = 'מחפש כתובות…';
     try {
-      const choices = await RouteGeocode.findAddresses(query, israelOnly(), isCurrent);
+      const { israelOnly, area } = searchContext();
+      const choices = await RouteGeocode.findAddresses(query, israelOnly, isCurrent, area);
       if (!isCurrent()) return;
       results.replaceChildren();
       if (!choices.length) {
@@ -64,27 +65,62 @@ function mountAddressSearch(input, searchButton, results, israelOnly, onPick, im
   return reset;
 }
 
-function mountMessageImport(israelOnly, onPick) {
+function mountMessageImport(searchContext, onPick) {
   const message = document.getElementById('importMessage');
   const preview = document.getElementById('importRows');
   const status = document.getElementById('importStatus');
-  const resets = new Set();
+  const guidedButton = document.getElementById('guidedImportBtn');
+  const rows = new Map();
+  let current = null;
+  let previewedText = '';
   let rowId = 0;
 
-  function clearPreview() {
-    resets.forEach(reset => reset());
-    resets.clear();
-    preview.replaceChildren();
-    status.textContent = '';
+  function stopGuided() {
+    if (current) {
+      current.reset();
+      status.textContent = 'החיפוש ברשימה נעצר. אפשר לחפש כתובת בנפרד או להתחיל שוב.';
+    }
+    current = null;
+    guidedButton.textContent = 'התחל חיפוש ברשימה';
   }
 
-  function addRow({ address, name, phone }) {
+  function searchNext() {
+    current = rows.values().next().value;
+    if (!current) {
+      stopGuided();
+      return;
+    }
+    guidedButton.textContent = 'עצור חיפוש ברשימה';
+    status.textContent = 'יש לבחור את התוצאה המתאימה כדי להוסיף אותה ולעבור לכתובת הבאה.';
+    current.searchButton.click();
+    current.searchButton.scrollIntoView({ block: 'nearest' });
+  }
+
+  guidedButton.addEventListener('click', () => {
+    if (current) {
+      stopGuided();
+    } else {
+      searchNext();
+    }
+  });
+
+  function clearPreview() {
+    stopGuided();
+    rows.forEach(entry => entry.reset());
+    rows.clear();
+    previewedText = '';
+    preview.replaceChildren();
+    status.textContent = '';
+    guidedButton.classList.add('hidden');
+  }
+
+  function addRow({ address, name, phone, details }) {
     const row = document.createElement('div');
     row.className = 'rounded-xl border border-slate-200 dark:border-slate-600 p-3 mt-3';
-    if (name || phone) {
+    if (name || phone || details) {
       const contact = document.createElement('p');
       contact.className = 'text-sm mb-2';
-      contact.textContent = 'פרטי מסירה במכשיר: ' + [name, phone].filter(Boolean).join(' · ');
+      contact.textContent = 'פרטי מסירה במכשיר: ' + [name, phone, details].filter(Boolean).join(' · ');
       row.append(contact);
     }
     const input = document.createElement('input');
@@ -107,37 +143,53 @@ function mountMessageImport(israelOnly, onPick) {
     remove.textContent = 'הסר שורה';
     const results = document.createElement('div');
     results.setAttribute('aria-live', 'polite');
-    const reset = mountAddressSearch(input, searchButton, results, israelOnly, location => {
+    const reset = mountAddressSearch(input, searchButton, results, searchContext, location => {
       if (!onPick(location)) return false;
+      const continueGuided = current === rows.get(row);
       discard();
       status.textContent = preview.children.length ? 'העצירה נוספה. אפשר להמשיך לכתובת הבאה.' : 'כל הכתובות שברשימה טופלו.';
+      if (continueGuided) searchNext();
       return true;
     }, true);
     function discard() {
+      if (current === rows.get(row)) stopGuided();
       reset();
-      resets.delete(reset);
+      rows.delete(row);
       row.remove();
+      guidedButton.classList.toggle('hidden', !rows.size);
     }
-    resets.add(reset);
+    rows.set(row, {reset, searchButton});
+    input.addEventListener('input', () => { if (current) stopGuided(); });
+    searchButton.addEventListener('click', () => {
+      if (current && current !== rows.get(row)) stopGuided();
+    });
     remove.addEventListener('click', discard);
     row.append(label, input, searchButton, remove, results);
     preview.append(row);
   }
 
-  message.addEventListener('input', clearPreview);
-  document.getElementById('previewMessageBtn').addEventListener('click', () => {
+  function showPreview() {
+    if (message.value === previewedText) return;
     clearPreview();
-    const rows = RouteGeocode.extractDeliveryRows(message.value);
-    if (!rows.length) {
+    previewedText = message.value;
+    if (!message.value.trim()) return;
+    const deliveries = RouteGeocode.extractDeliveryRows(message.value);
+    if (!deliveries.length) {
       status.textContent = 'לא זוהתה כתובת. אפשר להקליד כתובת לבדיקה בשורה למטה.';
       addRow({ address: '' });
       return;
     }
-    status.textContent = 'כתובות לבדיקה: ' + rows.length + '. יש להסיר פרטים אישיים משדה הכתובת לפני החיפוש.';
-    rows.forEach(addRow);
-  });
+    status.textContent = 'כתובות לבדיקה: ' + deliveries.length + '. בדקו את הכתובות לפני תחילת החיפוש.';
+    deliveries.forEach(addRow);
+    guidedButton.classList.remove('hidden');
+  }
+  message.addEventListener('input', showPreview);
+  document.getElementById('previewMessageBtn').addEventListener('click', showPreview);
   return {
-    resetSearches() { resets.forEach(reset => reset()); },
+    resetSearches() {
+      stopGuided();
+      rows.forEach(entry => entry.reset());
+    },
     clear() { message.value = ''; clearPreview(); }
   };
 }
