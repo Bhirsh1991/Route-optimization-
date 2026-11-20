@@ -3,7 +3,8 @@ const { test, expect } = require('@playwright/test');
 test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, serviceWorkers: 'block' });
 
 function point(number, name = 'Stop ' + number) {
-  return {display_name: name, lat: String(31 + number / 100), lon: '35', address: {house_number: String(number)}};
+  return {display_name: name, lat: String(31 + number / 100), lon: '35',
+    address: {road: 'Stop', house_number: String(number), city: 'Testville', country: 'Testland'}};
 }
 
 async function mockSearch(page, candidates = query => [point(Number(query.split(' ').at(-1)), query)]) {
@@ -30,6 +31,23 @@ function roadMatrix(url) {
   const positions = coords.map(c => Math.round((Number(c.split(',')[1]) - 31) * 100));
   return {code: 'Ok', durations: positions.map(from => positions.map(to => Math.abs(from - to)))};
 }
+
+test('restoring a previous-release trip retains qualified names and exact fallback', async ({page}) => {
+  await page.addInitScript(() => {
+    const startLocation = {lat: 31, lng: 35, address: 'Example Road 3', fullAddress: '3, Example Road, Sample City, Testland'};
+    const endLocation = {lat: 31.02, lng: 35, address: 'Another Road (ללא מספר)', fullAddress: 'Another Road, Sample City, Testland'};
+    localStorage.setItem('route-optimization:draft:v1', JSON.stringify({
+      startLocation, endLocation, intermediateLocations: [], optimizedOrder: [0, 1]
+    }));
+  });
+  await page.goto('./');
+  const link = page.locator('#openInGoogleMapsBtn');
+  await expect(link).toBeVisible();
+  const urls = new URL(await link.getAttribute('href')).searchParams;
+  expect(urls.get('origin')).toBe('3 Example Road, Sample City, Testland');
+  expect(urls.get('destination')).toBe('31.02,35');
+  await expect(page.locator('#mapsFallbackNote')).toBeVisible();
+});
 
 test('five stops survive Google Maps export, draft restoration and named save/load', async ({ page, context }) => {
   test.setTimeout(60000);
@@ -62,9 +80,13 @@ test('five stops survive Google Maps export, draft restoration and named save/lo
   const maps = await newPage;
   await maps.waitForURL('https://www.google.com/maps/**');
   const params = new URL(maps.url()).searchParams;
-  expect(params.get('origin')).toBe('31,35');
-  expect(params.get('destination')).toBe('31.06,35');
-  expect(params.get('waypoints').split('|')).toEqual([1, 2, 3, 4, 5].map(i => point(i).lat + ',35'));
+  const named = [params.get('origin'), ...params.get('waypoints').split('|'), params.get('destination')];
+  expect(named).toHaveLength(7);
+  named.forEach((name, i) => {
+    expect(name).toContain('Stop');
+    expect(name).toContain(String(i));
+    expect(name).toContain('Testville');
+  });
   await maps.close();
 
   await page.locator('#mapsSegments summary').tap();
@@ -75,8 +97,16 @@ test('five stops survive Google Maps export, draft restoration and named save/lo
     const p = new URL(url).searchParams;
     return [p.get('origin'), ...p.get('waypoints').split('|'), p.get('destination')];
   });
-  expect(stops[0]).toEqual([0, 1, 2, 3, 4].map(i => point(i).lat + ',35'));
-  expect(stops[1]).toEqual([4, 5, 6].map(i => point(i).lat + ',35'));
+  expect(stops[0]).toEqual(named.slice(0, 5));
+  expect(stops[1]).toEqual(named.slice(4));
+  await page.locator('#mapsExact').check();
+  const exact = new URL(await page.locator('#openInGoogleMapsBtn').getAttribute('href')).searchParams;
+  expect(exact.get('origin')).toBe('31,35');
+  expect(exact.get('waypoints').split('|')).toEqual([1, 2, 3, 4, 5].map(i => point(i).lat + ',35'));
+  expect(exact.get('destination')).toBe('31.06,35');
+  const exactSegment = new URL(await segments.nth(1).getAttribute('href')).searchParams;
+  expect(exactSegment.get('origin')).toBe('31.04,35');
+  expect(exactSegment.get('waypoints')).toBe('31.05,35');
 
   await page.reload();
   await expect(page.locator('#optimizedRouteList li')).toHaveText(ordered);
@@ -164,7 +194,11 @@ test('a late route response cannot undo an edit, and a disconnected route has no
 test('WhatsApp stays local through preview, then uses the selected Hebrew address coordinates', async ({ page }) => {
   const query = 'רחוב צה"ל 4';
   const common = query + ', מרכז, ישראל';
-  const queries = await mockSearch(page, q => q === query ? [point(2, common + ', אזור א'), point(4, common + ', אזור ב')] : [point(6, q)]);
+  const candidates = ['אזור א', 'אזור ב'].map((area, index) => ({
+    ...point(index === 0 ? 2 : 4, common + ', ' + area),
+    address: {road: 'רחוב צה"ל', house_number: '4', city: area, country: 'ישראל'}
+  }));
+  const queries = await mockSearch(page, q => q === query ? candidates : [point(6, q)]);
   const tableUrls = [];
   await page.route('https://router.project-osrm.org/**', route => {
     tableUrls.push(route.request().url());

@@ -1,8 +1,72 @@
-const { getOSRMTable, mapsUrl, mobileSegments } = require('../src/routing');
+const { getOSRMTable, mapsUrl, mapsLinks, mobileSegments } = require('../src/routing');
 
 const locations = Array.from({ length: 16 }, (_, i) => ({lat: 31 + i / 100, lng: 35}));
 const originalFetch = global.fetch;
 afterEach(() => { global.fetch = originalFetch; });
+
+function values(url) {
+  const params = new URL(url).searchParams;
+  const via = params.get('waypoints');
+  return [params.get('origin'), ...(via ? via.split('|') : []), params.get('destination')];
+}
+
+test('sends qualified labels in order with an exact-coordinate option for all links', () => {
+  const stops = locations.slice(0, 7).map((point, i) => ({...point, mapsAddress: 'רחוב לדוגמה ' + i + ', עיר בדיקה'}));
+  const names = mapsLinks(stops);
+  expect(values(names.fullUrl)).toEqual(stops.map(p => p.mapsAddress));
+  expect(values(names.segments[0].url)).toEqual(stops.slice(0, 5).map(p => p.mapsAddress));
+  expect(values(names.segments[1].url)).toEqual(stops.slice(4).map(p => p.mapsAddress));
+  expect(names.usesCoordinates).toBe(false);
+  const exact = mapsLinks(stops, true);
+  expect(values(exact.fullUrl)).toEqual(stops.map(p => p.lat + ',35'));
+  expect(values(exact.segments[1].url)).toEqual(stops.slice(4).map(p => p.lat + ',35'));
+});
+
+test('ambiguous, legacy and approximate locations keep the selected map point, including across segments', () => {
+  const stops = locations.slice(0, 7).map((point, i) => ({...point, mapsAddress: 'Example ' + i + ', Test Town'}));
+  stops[6].mapsAddress = stops[0].mapsAddress;
+  stops[1].approximate = true;
+  delete stops[2].mapsAddress;
+  stops[3].mapsAddress = 'A|B, Test Town';
+  const names = mapsLinks(stops);
+  expect(values(names.fullUrl)).toEqual(stops.map((p, i) => i === 4 || i === 5 ? p.mapsAddress : p.lat + ',35'));
+  expect(values(names.segments[0].url)[0]).toBe(stops[0].lat + ',35');
+  expect(values(names.segments[1].url).at(-1)).toBe(stops[6].lat + ',35');
+  expect(names.usesCoordinates).toBe(true);
+});
+
+test('long Unicode addresses are shortened to coordinates where necessary without losing stops', () => {
+  const stops = locations.slice(0, 7).map((point, i) => ({...point, mapsAddress: 'דרך לדוגמה ' + i + ', עיר בדיקה'}));
+  stops[2].mapsAddress = 'דרך '.repeat(210) + 'ארוכה';
+  const links = mapsLinks(stops);
+  expect([links.fullUrl, ...links.segments.map(s => s.url)].every(url => url.length <= 2048)).toBe(true);
+  expect(values(links.fullUrl)).toEqual(stops.map((p, i) => i === 2 ? p.lat + ',35' : p.mapsAddress));
+  expect(links.usesCoordinates).toBe(true);
+});
+
+test('older Nominatim records with a house, street, locality and country export readable addresses', () => {
+  const stops = [
+    {...locations[0], fullAddress: '12, Example Street, Sample City, Testland'},
+    {...locations[1], fullAddress: 'רחוב הבדיקה 4, עיר בדיקה, ישראל'},
+    {...locations[2], fullAddress: '7, רחוב המדגם, עיר בדיקה, ישראל'}
+  ];
+  expect(values(mapsUrl(stops))).toEqual(['12 Example Street, Sample City, Testland',
+    'רחוב הבדיקה 4, עיר בדיקה, ישראל', 'רחוב המדגם 7, עיר בדיקה, ישראל']);
+});
+
+test.each([
+  {fullAddress: '12, Example Street, Testland'},
+  {fullAddress: 'Example Street, Sample City, Testland'},
+  {fullAddress: '12, Example Street, 12000, Testland'},
+  {fullAddress: '12, Example Street, Test District, Testland'},
+  {fullAddress: 'Highway 12, Sample City, Testland'},
+  {fullAddress: '12, Example Street, Sample City, Testland', wasNumberStripped: true},
+  {fullAddress: '12, Example Street, Sample City, Testland', address: 'דוגמה (ללא מספר)'},
+  {fullAddress: '12, Example Street, Sample City, Testland', address: 'דוגמה (ללא מספר בית מאומת)'},
+  {fullAddress: '12, Example Street, Sample City, Testland', mapsAddress: null}
+])('ambiguous legacy addresses and explicitly rejected new labels keep their original point', details => {
+  expect(values(mapsUrl([{...locations[0], ...details}, locations[1]]))[0]).toBe('31,35');
+});
 
 test('keeps five waypoints in the single app URL and also creates mobile segments', () => {
   const trip = locations.slice(0, 7);
