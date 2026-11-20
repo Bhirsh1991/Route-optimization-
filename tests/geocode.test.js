@@ -79,13 +79,14 @@ describe('explicit geocoding', () => {
     expect(new URL(global.fetch.mock.calls[1][0]).searchParams.get('countrycodes')).toBe('il');
   });
   test('serializes street fallback and explicitly marks the approximate result', async () => {
-    global.fetch.mockResolvedValueOnce(ok([])).mockResolvedValueOnce(ok([{ ...sample, address: {} }]));
+    global.fetch.mockResolvedValue(ok([])).mockResolvedValueOnce(ok([]))
+      .mockResolvedValueOnce(ok([{ ...sample, display_name: 'הרצל, חיפה, ישראל', address: {road: 'הרצל', city: 'חיפה'} }]));
     const choices = findAddresses('הרצל 14, חיפה', false, () => true);
     await jest.advanceTimersByTimeAsync(900);
     expect(global.fetch).toHaveBeenCalledTimes(1);
-    await jest.advanceTimersByTimeAsync(200);
+    await jest.runAllTimersAsync();
     await expect(choices).resolves.toMatchObject([{ approximate: true }]);
-    expect(new URL(global.fetch.mock.calls[1][0]).searchParams.get('q')).toBe('הרצל, חיפה');
+    expect(new URL(global.fetch.mock.calls[1][0]).searchParams.get('street')).toBe('14 הרצל');
   });
   test('does not send stale queued searches and reports rate limiting with a cooldown', async () => {
     global.fetch.mockResolvedValue({ ok: false, status: 429, headers: new Headers({ 'Retry-After': '120' }) });

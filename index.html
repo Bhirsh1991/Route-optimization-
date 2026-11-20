@@ -300,24 +300,36 @@
             </div>
             <a id="openInGoogleMapsBtn" target="_blank" rel="noopener noreferrer"
                     class="inline-block text-center w-full sm:w-auto mt-4 bg-slate-900 hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600 text-white font-semibold py-2.5 px-5 rounded-xl hidden">
-                🧭 פתח במפות Google
+                פתיחת המסלול ב-Google Maps
             </a>
             <div id="mapsOptions" class="hidden mt-2">
-                <label id="mapsExactLabel" class="inline-flex min-h-[44px] items-center gap-2 text-sm">
-                    <input id="mapsExact" type="checkbox"> שלח קואורדינטות מדויקות במקום שמות כתובות
-                </label>
+                <a id="mapsAlternate" target="_blank" rel="noopener noreferrer"
+                   class="inline-flex min-h-[44px] items-center text-sm underline hidden"></a>
                 <p id="mapsFallbackNote" class="hidden text-xs text-slate-600 dark:text-slate-300"></p>
+                <details id="mapsLegs" class="mt-3 hidden">
+                    <summary class="cursor-pointer text-sm font-semibold">פתיחת כתובת אחת בכל פעם ב-Google Maps</summary>
+                    <p class="mt-2 text-sm">אם בתצוגה המקדימה באנדרואיד מופיעה רק העצירה הראשונה, פתחו את הנסיעות כאן לפי הסדר. בסיום כל נסיעה חזרו לכאן ולחצו על היעד הבא.</p>
+                    <div id="mapsLegLinks" class="mt-2 flex flex-col gap-2"></div>
+                </details>
             </div>
             <details id="mapsSegments" class="mt-3 hidden">
-                <summary class="cursor-pointer text-sm font-semibold">פתיחה במקטעים בדפדפן נייד</summary>
+                <summary class="cursor-pointer text-sm font-semibold">פתיחת המסלול במקטעים</summary>
                 <div id="mapsSegmentLinks" class="mt-2 flex flex-col gap-2"></div>
             </details>
+            <section id="wazeNavigation" aria-labelledby="wazeTitle" class="hidden mt-4 border-t border-slate-200 pt-4 dark:border-slate-600">
+                <h3 id="wazeTitle" class="font-semibold">ניווט ב-Waze</h3>
+                <p class="mt-1 text-sm">בסיום כל נסיעה חזרו לכאן כדי לפתוח את היעד הבא.</p>
+                <p data-waze-status class="my-2 font-medium" role="status"></p>
+                <div data-waze-links class="flex flex-wrap gap-2"></div>
+                <button data-waze-previous type="button" class="min-h-[44px] px-2 text-sm underline disabled:opacity-50">חזור ליעד הקודם</button>
+            </section>
         </section>
 
         <div class="text-xs text-slate-400 dark:text-slate-500 mt-6 text-center">
             חיפוש באמצעות <a href="https://nominatim.org/" target="_blank" rel="noopener noreferrer" class="underline">Nominatim</a> ·
             ניתוב באמצעות <a href="https://project-osrm.org/" target="_blank" rel="noopener noreferrer" class="underline">OSRM</a> ·
-            נתוני מפה © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" class="underline">תורמי OpenStreetMap</a>
+            נתוני מפה © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" class="underline">תורמי OpenStreetMap</a> ·
+            כתובות בנתניה: <a href="https://www.odata.org.il/dataset/ac1ae1fa-6d43-4685-8434-9953e950ca9b" target="_blank" rel="noopener noreferrer" class="underline">התמנון – מידע ציבורי לכל, CC BY</a>
         </div>
     </div>
     <div id="savedRoutesPanel" class="fixed inset-0 z-40 hidden" role="dialog" aria-modal="true" aria-labelledby="savedRoutesTitle" aria-hidden="true">
@@ -342,6 +354,8 @@
     <script src="src/planner-state.js"></script>
     <script src="src/optimizer.js"></script>
     <script src="src/routing.js"></script>
+    <script src="src/waze.js"></script>
+    <script src="src/netanya-reference.js"></script>
     <script src="src/geocode.js"></script>
     <script src="src/address-picker.js"></script>
     <script src="src/search-area.js"></script>
@@ -530,7 +544,7 @@
 
         function saveDraft() {
             if (!draftReady) return;
-            const draft = {...currentRoute(), activeStep, name: saveRouteNameInput.value};
+            const draft = {...currentRoute(), activeStep, name: saveRouteNameInput.value, wazeStopIndex: wazeNav.currentIndex};
             const warning = document.getElementById('draftWarning');
             try {
                 localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
@@ -851,8 +865,11 @@
         const mapsSegments = document.getElementById('mapsSegments');
         const mapsSegmentLinks = document.getElementById('mapsSegmentLinks');
         const mapsOptions = document.getElementById('mapsOptions');
-        const mapsExact = document.getElementById('mapsExact');
+        const mapsAlternate = document.getElementById('mapsAlternate');
         const mapsFallbackNote = document.getElementById('mapsFallbackNote');
+        const mapsLegs = document.getElementById('mapsLegs');
+        const mapsLegLinks = document.getElementById('mapsLegLinks');
+        const wazeNav = WazeNavigation.mount(document.getElementById('wazeNavigation'), saveDraft);
         let pendingCalculation = null;
 
         function showRouteStatus(text) {
@@ -869,13 +886,16 @@
             openInGoogleMapsBtn.classList.add('hidden');
             openInGoogleMapsBtn.removeAttribute('href');
             mapsOptions.classList.add('hidden');
+            mapsAlternate.removeAttribute('href');
+            mapsLegLinks.replaceChildren();
             mapsSegments.classList.add('hidden');
             mapsSegmentLinks.replaceChildren();
+            wazeNav.clear();
             lastOptimizedRoute = [];
             saveDraft();
         }
 
-        function renderOptimizedRoute(route) {
+        function renderOptimizedRoute(route, wazeStopIndex = 0) {
             lastOptimizedRoute = route;
             optimizedRouteList.replaceChildren();
             route.forEach((location, index) => {
@@ -885,35 +905,67 @@
                 optimizedRouteList.appendChild(item);
             });
 
-            updateMapsLinks(true);
+            updateMapsLinks();
+            wazeNav.show(route, Boolean(startLocation), wazeStopIndex);
         }
 
-        function updateMapsLinks(resetSegments = false) {
-            const {fullUrl, segments, hasAddresses, usesCoordinates} = routing.mapsLinks(lastOptimizedRoute, mapsExact.checked);
+        function addMapsLink(container, url, label) {
+            const link = document.createElement('a');
+            link.className = 'block min-h-[44px] py-2 px-3 underline';
+            link.href = url;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            link.textContent = label;
+            container.appendChild(link);
+        }
+
+        function updateMapsLinks() {
+            const {fullUrl, segments, exact, hasAddresses, usesCoordinates} = routing.mapsLinks(lastOptimizedRoute);
+            const alternate = routing.mapsLinks(lastOptimizedRoute, !exact);
             openInGoogleMapsBtn.classList.toggle('hidden', !fullUrl);
-            if (fullUrl) openInGoogleMapsBtn.href = fullUrl;
+            if (fullUrl) {
+                openInGoogleMapsBtn.href = fullUrl;
+                openInGoogleMapsBtn.textContent = exact
+                    ? `פתיחת כל ${lastOptimizedRoute.length} הנקודות ב-Google Maps לפי מיקום מדויק`
+                    : 'פתיחת המסלול ב-Google Maps';
+            }
             else openInGoogleMapsBtn.removeAttribute('href');
             mapsOptions.classList.remove('hidden');
-            document.getElementById('mapsExactLabel').classList.toggle('hidden', !hasAddresses);
-            mapsFallbackNote.classList.toggle('hidden', hasAddresses && (mapsExact.checked || !usesCoordinates));
-            mapsFallbackNote.textContent = hasAddresses
-                ? 'עצירות עם כתובת חלקית או זהה, וקישורים ארוכים במיוחד, עשויים לכלול קואורדינטות.'
-                : 'המסלול הזה ייפתח בקואורדינטות. לשליחת שם כתובת, אפשר לבחור מחדש תוצאה עם כתובת מלאה.';
+            const showAlternate = fullUrl && alternate.fullUrl !== fullUrl;
+            mapsAlternate.classList.toggle('hidden', !showAlternate);
+            if (showAlternate) {
+                mapsAlternate.href = alternate.fullUrl;
+                mapsAlternate.textContent = exact ? 'פתיחת המסלול לפי שמות הכתובות' : 'פתיחת המסלול לפי מיקום מדויק';
+            } else mapsAlternate.removeAttribute('href');
+            const notes = [];
+            if (!fullUrl) notes.push('המסלול כולל יותר מתשע עצירות ביניים. פתחו את המקטעים לפי הסדר.');
+            if (!hasAddresses) notes.push('המסלול הזה ייפתח לפי נקודות הציון שנבחרו.');
+            else if (exact ? alternate.usesCoordinates : usesCoordinates) notes.push('גם בקישור לפי שמות, כתובת חלקית או לא חד־משמעית תישלח כנקודת ציון. כך גם כשהקישור ארוך מדי.');
+            mapsFallbackNote.classList.toggle('hidden', !notes.length);
+            mapsFallbackNote.textContent = notes.join(' ');
+            mapsLegLinks.replaceChildren();
+            mapsLegs.open = false;
+            mapsLegs.classList.toggle('hidden', !alternate.namedLegs.length);
+            alternate.namedLegs.forEach((leg, index) => {
+                addMapsLink(mapsLegLinks, leg.url, `נסיעה ${index + 1} מתוך ${alternate.namedLegs.length} · ${leg.destination}`);
+            });
             mapsSegmentLinks.replaceChildren();
             mapsSegments.classList.toggle('hidden', segments.length < 2);
-            if (resetSegments) mapsSegments.open = !fullUrl;
+            mapsSegments.open = !fullUrl;
+            if (segments.length < 2) return;
             segments.forEach((segment, index) => {
-                const link = document.createElement('a');
-                link.className = 'block py-2 px-3 underline';
-                link.href = segment.url;
-                link.target = '_blank';
-                link.rel = 'noopener noreferrer';
-                link.textContent = `מקטע ${index + 1} מתוך ${segments.length} · מ־${segment.start.address} עד ${segment.end.address}`;
-                mapsSegmentLinks.appendChild(link);
+                addMapsLink(mapsSegmentLinks, segment.url,
+                    `מקטע ${index + 1} מתוך ${segments.length} לפי מיקום · מ־${segment.start.address} עד ${segment.end.address}`);
+                const namedUrl = alternate.segments[index].url;
+                if (namedUrl !== segment.url) {
+                    addMapsLink(mapsSegmentLinks, namedUrl, `מקטע ${index + 1} לפי שמות הכתובות`);
+                }
             });
         }
 
         optimizeRouteBtn.addEventListener('click', async () => {
+            const previousOrder = lastOptimizedRoute;
+            const previousWazeStop = wazeNav.currentIndex;
             clearRouteDisplay();
             const start = startLocation;
             const end = endLocation;
@@ -940,7 +992,8 @@
                         : 'החישוב המקורב לא מצא סדר נסיעה שעובר בכל הנקודות. נסו לשנות את העצירות.');
                     return;
                 }
-                renderOptimizedRoute(route);
+                const sameOrder = previousOrder.length === route.length && previousOrder.every((point, i) => point === route[i]);
+                renderOptimizedRoute(route, sameOrder ? previousWazeStop : 0);
                 saveDraft();
                 showMessage(exact ? 'המסלול מוכן.' : 'המסלול המשוער מוכן.', 'success');
             } catch (error) {
@@ -955,8 +1008,6 @@
                 if (pendingCalculation === controller) pendingCalculation = null;
             }
         });
-
-        mapsExact.addEventListener('change', () => updateMapsLinks());
 
         function openSavedRoutesPanel() {
             panelOpener = document.activeElement;
@@ -1028,7 +1079,7 @@
             updateIntermediateLocationsList();
             clearRouteDisplay();
             const restored = PlannerState.restoreOrder(route);
-            if (restored.length) renderOptimizedRoute(restored);
+            if (restored.length) renderOptimizedRoute(restored, route.wazeStopIndex);
             setActiveStep(Number.isInteger(step) && step >= 1 && step <= 4 ? step : 1);
             draftReady = true;
         }
