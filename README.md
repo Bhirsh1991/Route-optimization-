@@ -6,11 +6,11 @@ A simple web application for planning an optimal travel route.
 
 ## Usage
 
-1. Open `index.html` locally or visit the [live demo](https://bhirsh1991.github.io/Route-optimization-/).
-2. Set your start and end addresses.
-3. Add intermediate locations.
-4. Click the optimize button to compute the best route and optionally open it in Google Maps.
-5. Save routes for later use and open the saved-routes panel to load or preview parameters.
+1. Open the [planner](https://bhirsh1991.github.io/Route-optimization-/) and search for a start, end or intermediate address. Select the matching result. The Israel-only filter is optional.
+2. To import deliveries, paste a message into the WhatsApp section, review each suggested address, and search for it. Contact previews stay on the device.
+3. Compute the route. The planner minimizes travel time according to the OSRM driving matrix for up to 14 intermediate stops and uses a nearest-neighbor estimate for larger trips.
+4. Open the route in Google Maps. Five intermediate stops can open in one app link. For mobile browsers, use the alternative links with up to three intermediate stops per segment.
+5. Your draft and its last calculated order are stored in this browser. Save a named route to keep multiple trips.
 
 ## Interface Highlights
 
@@ -23,25 +23,21 @@ The app includes a service worker and manifest so it can be installed as a PWA.
 
 1. Open the live demo in a supported browser (Chrome, Edge, or Safari on iOS).
 2. Use **Install App** (desktop) or **Add to Home Screen** (mobile) to install it.
-3. Launch the installed app to run it in a standalone window; it will cache assets for faster startup.
+3. After the first successful online visit, the planner can reopen offline with locally stored routes. New address searches and driving-time calculations need a connection.
 
 ## Development
 
-The application consists of a single HTML file that uses vanilla JavaScript and Tailwind CSS via CDN, so no build step is required.
+The published files are static. The page uses vanilla JavaScript and a local Tailwind stylesheet. Run `npm run build` after changing HTML, scripts or assets and commit the generated `assets/app.css` and `service-worker.js`. The build refreshes the offline shell revision.
 
 ## CI
 
-Pull requests and pushes to `main` trigger a GitHub Actions workflow that performs several checks:
-
-1. **Install dependencies** – Node.js is set up and `npm install` runs to fetch test tooling.
-2. **Syntax check** – each JavaScript file is parsed with `node --check` to catch syntax errors early.
-3. **Unit tests** – `npm test` executes the Jest test suite under `tests/`.
-4. **Basic file check** – the existing `test.sh` script verifies that `index.html` is present and includes a `<title>` tag.
-
-You can run these checks locally before opening a pull request:
+Pull requests and pushes to `main` check generated assets and JavaScript syntax, run the Jest suite, and exercise the mobile planner in Chromium. Local browser tests use Python 3 to serve the static files.
 
 ```bash
-npm install
+npm ci
+npm run build
 npm test
 bash test.sh
+npx playwright install chromium
+npm run test:browser
 ```

@@ -3,6 +3,7 @@
     module.exports = factory();
   } else {
     var exports = factory();
+    root.MAX_EXACT_STOPS = exports.MAX_EXACT_STOPS;
     root.generatePermutations = exports.generatePermutations;
     root.solveTSP = exports.solveTSP;
     root.optimizeRouteNearestNeighbor = exports.optimizeRouteNearestNeighbor;
@@ -25,117 +26,103 @@
     return result;
   }
 
-  function solveTSP(intermediateLocs, durationsMatrix, startLoc, endLoc, allPointsForMatrix) {
-    if (intermediateLocs.length === 0) {
-      const route = [];
-      if (startLoc) route.push(startLoc);
-      if (endLoc && (route.length === 0 || route[route.length - 1] !== endLoc)) route.push(endLoc);
-      return route;
+  const MAX_EXACT_STOPS = 14;
+
+  function getCosts(intermediate, matrix, start, end, all) {
+    const indices = new Map(all.map((point, index) => [point, index]));
+    function cost(from, to) {
+      const duration = matrix?.[indices.get(from)]?.[indices.get(to)];
+      return Number.isFinite(duration) && duration >= 0 ? duration : Infinity;
     }
-
-    const permutations = generatePermutations(intermediateLocs);
-    let bestRoute = [];
-    let minTotalDuration = Infinity;
-
-    for (const perm of permutations) {
-      let currentTotalDuration = 0;
-      let currentPath = [];
-
-      if (startLoc) {
-        currentPath.push(startLoc);
-      }
-
-      currentPath = currentPath.concat(perm);
-
-      if (endLoc) {
-        currentPath.push(endLoc);
-      }
-
-      for (let i = 0; i < currentPath.length - 1; i++) {
-        const fromPoint = currentPath[i];
-        const toPoint = currentPath[i + 1];
-
-        const fromIdx = allPointsForMatrix.indexOf(fromPoint);
-        const toIdx = allPointsForMatrix.indexOf(toPoint);
-
-        if (fromIdx === -1 || toIdx === -1 || !durationsMatrix[fromIdx] || durationsMatrix[fromIdx][toIdx] === undefined) {
-          currentTotalDuration = Infinity;
-          break;
-        }
-        currentTotalDuration += durationsMatrix[fromIdx][toIdx];
-      }
-
-      if (currentTotalDuration < minTotalDuration) {
-        minTotalDuration = currentTotalDuration;
-        bestRoute = currentPath;
-      }
-    }
-    return bestRoute;
+    return {
+      first: intermediate.map(point => start ? cost(start, point) : 0),
+      last: intermediate.map(point => end ? cost(point, end) : 0),
+      between: intermediate.map(from => intermediate.map(to => cost(from, to))),
+      direct: start && end ? cost(start, end) : 0
+    };
   }
 
-  function optimizeRouteNearestNeighbor(intermediateLocs, durationsMatrix, startLoc, endLoc, allPointsForMatrix) {
-    let currentRoute = [];
-    let unvisitedIntermediateIndices = Array.from({ length: intermediateLocs.length }, (_, i) => i);
+  function withEndpoints(stops, start, end) {
+    const route = stops.slice();
+    if (start) route.unshift(start);
+    if (end) route.push(end);
+    return route;
+  }
 
-    let currentPoint = null;
-    let currentPointMatrixIndex = -1;
+  function solveTSP(intermediate, matrix, start, end, all) {
+    const n = intermediate.length;
+    if (n > MAX_EXACT_STOPS) throw new RangeError('Too many stops for the exact solver');
+    const costs = getCosts(intermediate, matrix, start, end, all);
+    if (!n) return Number.isFinite(costs.direct) ? withEndpoints([], start, end) : [];
 
-    if (startLoc) {
-      currentRoute.push(startLoc);
-      currentPoint = startLoc;
-      currentPointMatrixIndex = allPointsForMatrix.indexOf(startLoc);
-    } else if (intermediateLocs.length > 0) {
-      currentPoint = intermediateLocs[0];
-      currentRoute.push(currentPoint);
-      currentPointMatrixIndex = allPointsForMatrix.indexOf(currentPoint);
-      unvisitedIntermediateIndices = unvisitedIntermediateIndices.filter(idx => intermediateLocs[idx] !== currentPoint);
-    } else {
-      if (endLoc && (currentRoute.length === 0 || currentRoute[currentRoute.length - 1] !== endLoc)) {
-        currentRoute.push(endLoc);
-      }
-      return currentRoute;
-    }
-
-    while (unvisitedIntermediateIndices.length > 0) {
-      let nearestIntermediateIdx = -1;
-      let minDuration = Infinity;
-
-      for (let i = 0; i < unvisitedIntermediateIndices.length; i++) {
-        const nextIntermediatePoint = intermediateLocs[unvisitedIntermediateIndices[i]];
-        const nextIntermediateMatrixIndex = allPointsForMatrix.indexOf(nextIntermediatePoint);
-
-        if (currentPointMatrixIndex === -1 || nextIntermediateMatrixIndex === -1 ||
-            !durationsMatrix[currentPointMatrixIndex] || durationsMatrix[currentPointMatrixIndex][nextIntermediateMatrixIndex] === undefined) {
-          continue;
-        }
-
-        const duration = durationsMatrix[currentPointMatrixIndex][nextIntermediateMatrixIndex];
-
-        if (duration < minDuration) {
-          minDuration = duration;
-          nearestIntermediateIdx = unvisitedIntermediateIndices[i];
+    // Held–Karp: cheapest suffix from each stop through the remaining subset to the end.
+    const subsets = 1 << n;
+    const best = new Float64Array(subsets * n).fill(Infinity);
+    const nextStop = new Int8Array(subsets * n).fill(-1);
+    best.set(costs.last);
+    for (let mask = 1; mask < subsets; mask++) {
+      for (let from = 0; from < n; from++) {
+        if (mask & (1 << from)) continue;
+        const state = mask * n + from;
+        for (let bits = mask; bits; bits &= bits - 1) {
+          const bit = bits & -bits;
+          const to = 31 - Math.clz32(bit);
+          const candidate = costs.between[from][to] + best[(mask ^ bit) * n + to];
+          if (candidate < best[state]) {
+            best[state] = candidate;
+            nextStop[state] = to;
+          }
         }
       }
+    }
 
-      if (nearestIntermediateIdx !== -1) {
-        const nextPoint = intermediateLocs[nearestIntermediateIdx];
-        currentRoute.push(nextPoint);
-        currentPoint = nextPoint;
-        currentPointMatrixIndex = allPointsForMatrix.indexOf(currentPoint);
-        unvisitedIntermediateIndices = unvisitedIntermediateIndices.filter(idx => idx !== nearestIntermediateIdx);
-      } else {
-        break;
+    let remaining = subsets - 1;
+    let current = -1;
+    let minimum = Infinity;
+    for (let i = 0; i < n; i++) {
+      const total = costs.first[i] + best[(remaining ^ (1 << i)) * n + i];
+      if (total < minimum) {
+        minimum = total;
+        current = i;
       }
     }
-
-    if (endLoc && (currentRoute.length === 0 || currentRoute[currentRoute.length - 1] !== endLoc)) {
-      currentRoute.push(endLoc);
+    if (current === -1) return [];
+    const order = [];
+    while (remaining) {
+      order.push(intermediate[current]);
+      remaining ^= 1 << current;
+      current = nextStop[remaining * n + current];
     }
+    return withEndpoints(order, start, end);
+  }
 
-    return currentRoute;
+  function optimizeRouteNearestNeighbor(intermediate, matrix, start, end, all) {
+    const costs = getCosts(intermediate, matrix, start, end, all);
+    if (!intermediate.length) return Number.isFinite(costs.direct) ? withEndpoints([], start, end) : [];
+
+    const unvisited = new Set(intermediate.keys());
+    const ordered = [];
+    let from = -1;
+    while (unvisited.size) {
+      const available = from === -1 ? costs.first : costs.between[from];
+      let nearest = -1;
+      let minimum = Infinity;
+      for (const next of unvisited) {
+        if (available[next] < minimum) {
+          nearest = next;
+          minimum = available[next];
+        }
+      }
+      if (nearest === -1) return [];
+      unvisited.delete(nearest);
+      ordered.push(intermediate[nearest]);
+      from = nearest;
+    }
+    return Number.isFinite(costs.last[from]) ? withEndpoints(ordered, start, end) : [];
   }
 
   return {
+    MAX_EXACT_STOPS,
     generatePermutations,
     solveTSP,
     optimizeRouteNearestNeighbor
