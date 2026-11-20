@@ -44,6 +44,11 @@ test('downloadable skills use the shared offline planner and handle a missing or
       const folder = path.join(tmp, target);
       execFileSync(python, ['-m', 'zipfile', '-e', path.join(root, 'ai', 'route-planner-' + target + '.zip'), folder]);
       const skill = target === 'gemini' ? folder : path.join(folder, 'skills', 'route-planner');
+      const publicGuide = fs.readFileSync(path.join(root, 'ai', 'route-planner.txt'), 'utf8').replace(/\r\n/g, '\n');
+      const packagedGuide = fs.readFileSync(path.join(skill, 'SKILL.md'), 'utf8');
+      expect(publicGuide).toBe(packagedGuide.replace(/^---\n[\s\S]*?\n---\n+/, ''));
+      expect(publicGuide.startsWith('# Maslulim')).toBe(true);
+      expect(publicGuide).toContain('https://bhirsh1991.github.io/Route-optimization-/ai/route-planner-' + target + '.zip');
       const run = (action, value) => JSON.parse(execFileSync(process.execPath, [path.join(skill, 'scripts', 'route.js'), action], {
         input: JSON.stringify(value), encoding: 'utf8'
       }));
