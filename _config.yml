@@ -1,0 +1,22 @@
+# GitHub Pages serves the planner and its downloads from the repository root.
+exclude:
+  - AGENTS.md
+  - README.md
+  - ai/SKILL.md
+  - ai/plugin.json
+  - scripts
+  - tests
+  - e2e
+  - node_modules
+  - test-results
+  - playwright-report
+  - test.sh
+  - package.json
+  - package-lock.json
+  - playwright.config.js
+  - tailwind.config.js
+  - .sass-cache
+  - .jekyll-cache
+  - Gemfile
+  - Gemfile.lock
+  - vendor

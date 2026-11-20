@@ -66,6 +66,26 @@ describe('explicit geocoding', () => {
     global.fetch = originalFetch;
   });
   const ok = data => ({ ok: true, json: async () => data });
+  test.each([
+    ['רחוב הבדיקה 9, נייד 0000000001', ''],
+    ['דוגמה 3 דירה 11', ''],
+    ['רחוב לדוגמה 7, שם איש בדיקה', ''],
+    ['שם: בדיקה', ''],
+    ['Demo Place, demo@example.org', ''],
+    ['דוגמה 3', 'עיר דוגמה קוד כניסה 1234'],
+    ['Demo Place', 'delivery@example.org']
+  ])('keeps delivery details out of outbound address and city queries', async (query, city) => {
+    await expect(findAddresses(query, false, () => true, {city})).rejects.toThrow();
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+  test.each(['Demo Street 12, Tel Aviv', 'Tel-Aviv Museum', 'רחוב שם הגדולים 7', 'בית חולים שיבא',
+    'שד׳ הדגמה;שדרות הדגמה 12א', 'רחוב בן־אב״י 12'])('keeps ordinary address and place names searchable', async query => {
+    global.fetch.mockResolvedValue(ok([]));
+    const search = findAddresses(query, false, () => true);
+    await jest.runAllTimersAsync();
+    await search;
+    expect(global.fetch.mock.calls[0][1]).toMatchObject({cache:'no-store', credentials:'omit', redirect:'error', referrerPolicy:'origin'});
+  });
   test('keeps coordinates for each full match, filters only when requested, and reuses the result', async () => {
     global.fetch.mockResolvedValue(ok([sample, { ...sample, lat: '33', display_name: '14, הרצל, אשדוד' }]));
     const choices = await findAddresses('הרצל 14', false, () => true);

@@ -100,7 +100,9 @@ test('passes cancellation through to OSRM and accepts directed matrices with mis
   global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => ({code: 'Ok', durations}) });
   const signal = new AbortController().signal;
   await expect(getOSRMTable(locations.slice(0, 2), signal)).resolves.toEqual(durations);
-  expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('/driving/35,31;35,31.01'), {signal});
+  expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('/driving/35,31;35,31.01'), {
+    signal, credentials: 'omit', cache: 'no-store', redirect: 'error', referrerPolicy: 'no-referrer'
+  });
 });
 
 test.each([

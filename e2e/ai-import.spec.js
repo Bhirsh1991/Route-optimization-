@@ -57,6 +57,7 @@ test('an AI handoff stays local until accepted and uses the same optimizer for c
   await expect(dialog).toBeVisible();
   await expect(page.locator('#aiDraftNotice')).toBeVisible();
   await expect(dialog.locator('li')).toHaveCount(4);
+  expect(new URL(page.url()).hash).toBe('');
   expect(queries).toHaveLength(0);
   expect(tables).toBe(0);
   await page.locator('#aiImportRun').tap();
@@ -78,6 +79,8 @@ test('ambiguous pins wait for a choice and keep the original draft intact on dis
   const queries = await setup(page, true);
   await page.goto(handoff());
   await page.locator('#aiImportClose').tap();
+  await expect(page.locator('#aiImportRows li')).toHaveCount(0);
+  await expect(page.locator('#aiImportCity')).toHaveValue('');
   expect(queries).toHaveLength(0);
   await expect(page.locator('#drive')).toBeVisible();
   expect(await page.evaluate(key => JSON.parse(localStorage.getItem(key)), draftKey)).toEqual(trip);

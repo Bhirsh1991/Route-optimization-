@@ -7,7 +7,9 @@
   const MAX_MAPS_URL_LENGTH = 2048;
 
   async function getOSRMTable(points, signal) {
-    const response = await fetch(roadTable.tableUrl(points), { signal });
+    const response = await fetch(roadTable.tableUrl(points), {
+      signal, credentials: 'omit', cache: 'no-store', redirect: 'error', referrerPolicy: 'no-referrer'
+    });
     if (!response.ok) throw new Error('שירות הניתוב לא הצליח לחשב את זמני הנסיעה. אפשר לנסות שוב.');
     return roadTable.durations(await response.json(), points.length);
   }

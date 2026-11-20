@@ -1,5 +1,5 @@
 // The build updates these two constants whenever the offline shell changes.
-const REVISION = '5934314956bececc';
+const REVISION = '2c69f86bc76ad831';
 const FILES = ["index.html","manifest.json","logo-small.webp","assets/app.css","assets/icon-192.png","assets/icon-512.png","assets/planner.css","assets/rubik-hebrew.woff2","assets/rubik-latin.woff2","src/address-picker.js","src/address-reference.js","src/ai-import.js","src/ai-route.js","src/appearance.js","src/geocode.js","src/netanya-reference.js","src/optimizer.js","src/planner-state.js","src/road-table.js","src/routing.js","src/search-area.js","src/waze.js"];
 const scope = self.registration.scope;
 const prefix = 'route-optimizer:' + scope + ':';

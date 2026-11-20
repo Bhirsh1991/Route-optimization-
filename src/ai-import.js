@@ -9,7 +9,6 @@ function mountAiImport(searchContext, hasDraft, onRoute) {
   const locate = document.getElementById('aiImportLocate');
   const keepRepeats = document.getElementById('aiImportKeepRepeats');
   let rows = [];
-  let sourceHash = '';
   let generation = 0;
   let routingController;
   let nearby;
@@ -39,11 +38,14 @@ function mountAiImport(searchContext, hasDraft, onRoute) {
 
   function dismiss() {
     cancelWork();
-    if (sourceHash && location.hash === sourceHash) {
-      history.replaceState(history.state, '', location.pathname + location.search);
-    }
-    sourceHash = '';
-    dialog.close();
+    rows = [];
+    nearby = null;
+    list.replaceChildren();
+    city.value = '';
+    status.textContent = '';
+    areaNote.textContent = '';
+    resetRepeatApproval();
+    if (dialog.open) dialog.close();
   }
   document.getElementById('aiImportClose').addEventListener('click', dismiss);
   dialog.addEventListener('cancel', event => { event.preventDefault(); dismiss(); });
@@ -106,6 +108,7 @@ function mountAiImport(searchContext, hasDraft, onRoute) {
     input.type = 'text';
     input.dir = 'auto';
     input.autocomplete = 'off';
+    input.spellcheck = false;
     input.maxLength = 160;
     input.id = 'ai-address-' + index;
     input.value = point.address;
@@ -125,19 +128,15 @@ function mountAiImport(searchContext, hasDraft, onRoute) {
   }
 
   function readLink() {
-    cancelWork();
-    resetRepeatApproval();
     let request;
     let error;
     try { request = AIRoute.parseLink(location.hash); } catch (e) { error = e; }
     if (!request && !error) {
-      if (dialog.open) dialog.close();
-      sourceHash = '';
       return;
     }
-    sourceHash = location.hash;
-    list.replaceChildren();
-    rows = [];
+    // The incoming address list is only needed in memory for this review.
+    history.replaceState(history.state, '', location.pathname + location.search);
+    dismiss();
     form.hidden = Boolean(error);
     status.textContent = error ? error.message : '';
     if (request) {

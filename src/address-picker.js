@@ -1,4 +1,4 @@
-function mountAddressSearch(input, searchButton, results, searchContext, onPick, imported = false) {
+function mountAddressSearch(input, searchButton, results, searchContext, onPick) {
   let version = 0;
   function reset() {
     version++;
@@ -11,11 +11,6 @@ function mountAddressSearch(input, searchButton, results, searchContext, onPick,
     const query = input.value.trim();
     if (!query) {
       results.textContent = 'יש להזין כתובת לחיפוש.';
-      input.focus();
-      return;
-    }
-    if (imported && RouteGeocode.hasContactDetails(query)) {
-      results.textContent = 'יש להסיר פרטי קשר מהכתובת לפני שליחתה לחיפוש.';
       input.focus();
       return;
     }
@@ -116,9 +111,10 @@ function mountMessageImport(searchContext, onPick) {
   const preview = document.getElementById('importRows');
   const status = document.getElementById('importStatus');
   const guidedButton = document.getElementById('guidedImportBtn');
+  const discardButton = document.getElementById('discardImportBtn');
   const rows = new Map();
   let current = null;
-  let previewedText = '';
+  let previewCurrent = false;
   let rowId = 0;
 
   function stopGuided() {
@@ -154,10 +150,16 @@ function mountMessageImport(searchContext, onPick) {
     stopGuided();
     rows.forEach(entry => entry.reset());
     rows.clear();
-    previewedText = '';
+    previewCurrent = false;
     preview.replaceChildren();
     status.textContent = '';
     guidedButton.classList.add('hidden');
+  }
+
+  function clearImport() {
+    message.value = '';
+    clearPreview();
+    discardButton.hidden = true;
   }
 
   function addRow({ address, name, phone, details }) {
@@ -173,6 +175,8 @@ function mountMessageImport(searchContext, onPick) {
     input.id = 'import-address-' + (++rowId);
     input.type = 'text';
     input.dir = 'auto';
+    input.autocomplete = 'off';
+    input.spellcheck = false;
     input.value = address;
     input.placeholder = 'רחוב, מספר ועיר';
     input.className = 'w-full rounded-xl border border-slate-200 dark:border-slate-600 dark:bg-slate-900 px-3 py-2.5 mt-1';
@@ -196,13 +200,13 @@ function mountMessageImport(searchContext, onPick) {
       status.textContent = preview.children.length ? 'העצירה נוספה. אפשר להמשיך לכתובת הבאה.' : 'כל הכתובות שברשימה טופלו.';
       if (continueGuided) searchNext();
       return true;
-    }, true);
+    });
     function discard() {
       if (current === rows.get(row)) stopGuided();
       reset();
       rows.delete(row);
       row.remove();
-      guidedButton.classList.toggle('hidden', !rows.size);
+      if (!rows.size) clearImport();
     }
     rows.set(row, {reset, searchButton});
     input.addEventListener('input', () => { if (current) stopGuided(); });
@@ -215,11 +219,18 @@ function mountMessageImport(searchContext, onPick) {
   }
 
   function showPreview() {
-    if (message.value === previewedText) return;
+    if (previewCurrent) return;
     clearPreview();
-    previewedText = message.value;
+    discardButton.hidden = !message.value;
+    previewCurrent = true;
     if (!message.value.trim()) return;
-    const deliveries = RouteGeocode.extractDeliveryRows(message.value);
+    let deliveries;
+    try {
+      deliveries = RouteGeocode.extractDeliveryRows(message.value);
+    } catch (error) {
+      status.textContent = error.message;
+      return;
+    }
     if (!deliveries.length) {
       status.textContent = 'לא זוהתה כתובת. אפשר להקליד כתובת לבדיקה בשורה למטה.';
       addRow({ address: '' });
@@ -229,13 +240,18 @@ function mountMessageImport(searchContext, onPick) {
     deliveries.forEach(addRow);
     guidedButton.classList.remove('hidden');
   }
-  message.addEventListener('input', showPreview);
+  message.addEventListener('input', () => { previewCurrent = false; showPreview(); });
+  discardButton.addEventListener('click', () => {
+    clearImport();
+    status.textContent = 'ההודעה שהודבקה ופרטי המסירה נמחקו מהטופס.';
+    message.focus();
+  });
   document.getElementById('previewMessageBtn').addEventListener('click', showPreview);
   return {
     resetSearches() {
       stopGuided();
       rows.forEach(entry => entry.reset());
     },
-    clear() { message.value = ''; clearPreview(); }
+    clear: clearImport
   };
 }
