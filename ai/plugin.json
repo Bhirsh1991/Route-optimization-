@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "route-planner",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Plan delivery stops with Maslulim and return a mobile route link.",
   "homepage": "https://bhirsh1991.github.io/Route-optimization-/ai/",
   "extensions": {

@@ -90,7 +90,9 @@
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 12000);
       try {
-        const response = await fetch(url.href, { signal: controller.signal });
+        const response = await fetch(url.href, {
+          signal: controller.signal, cache: 'no-store', credentials: 'omit', redirect: 'error', referrerPolicy: 'origin'
+        });
         if (response.status === 429) {
           const header = response.headers.get('Retry-After');
           const until = header && !/^\d+$/.test(header) ? Date.parse(header) : Date.now() + Number(header) * 1000;
@@ -220,6 +222,10 @@
   async function findAddresses(query, israelOnly = false, isCurrent = () => true, area = {}) {
     query = query.trim();
     if (!query || !isCurrent()) return [];
+    if (query.length > 300 || hasContactDetails(query)) {
+      throw new Error('לחיפוש יש להזין רק כתובת או שם מקום, ללא טלפון ופרטי מסירה.');
+    }
+    if (area?.city && !validSearchCity(area.city)) throw new Error('בדקו את אזור החיפוש והזינו שם עיר בלבד.');
     const parsed = parseQuery(query, area?.city?.trim());
     let street = parsed.street;
     const number = parsed.number;
@@ -349,6 +355,10 @@
   const nonAddressLine = /^(?:(?:שם|לקוח|לקוחה|נמען|מקבל|טלפון|טל׳?|נייד|אימייל|דוא"ל|הערות?|גיל|שפה|דובר(?:ת|ים)?|קומה|דירה|כניסה|קוד|מספר נפשות|נפשות|מצב משפחתי|עבור|name|contact|email|phone|tel|mobile|age|language|notes?|floor|apt)(?=$|[\s:=–-])|(?:בן|בת)\s+[\d])/iu;
   const deliveryDetail = /(?:^|[\s,;(])((?:דירה|קומה|כניסה|apartment|apt\.?|floor|entrance)\s*[:=#–-]?\s*(?:קרקע|מרתף|-?\d+(?:[/-]\d+)?[\p{L}]?|[א-תa-z])['׳]?)(?![\p{L}\d])/giu;
   const trailingMeta = /[\s,;|]+(?:שם(?:\s+(?:הלקוח|לקוח|הנמען))?|לקוח|לקוחה|נמען|טלפון|טל׳?|נייד|איש קשר|הערות?|קוד|דירה|קומה|כניסה|שפה|דובר(?:ת|ים)?|גיל|מספר נפשות|name|phone|tel|mobile|contact|age|notes?|floor|apt\.?)(?=$|[\s:=–-])/giu;
+  const contactLabel = /(?:^|[\s,;|])(?:שם(?:\s+(?:הלקוח|לקוח|הנמען))?|לקוח[ה]?|נמען|מקבל|טלפון|טל[׳']?|נייד|אימייל|דוא["״]ל|הערות?|שפה|דובר(?:ת|ים)?|קוד(?:ן|\s+כניסה)?|נפשות|גיל|עבור|name|recipient|phone|tel|mobile|e-?mail|contact|notes?|age|access\s+code)(?:\s*[:=]|\s+[–-]|\s*[–-](?=\s|\d))/iu;
+  const personalNumber = /(?:^|[\s,;|])(?:מספר נפשות|נפשות|גיל|age|קודן|קוד כניסה|טלפון|נייד|mobile|phone)\s+\d|^(?:בן|בת)\s+\d/iu;
+  const deliveryNote = /(?:^|[\s,;|])(?:הערות?(?:\s+למסירה)?|איש קשר|מספר נפשות|דובר(?:ת|ים)?|פרטי מסירה|delivery notes?|contact person|access code)\s+\S/iu;
+  const recipientAfterAddress = /\p{L}[^\d\r\n]*\d+[\p{L}-]*[\s,;|]+(?:שם(?:\s+הנמען)?|נמען|לקוח[ה]?|מקבל|שפה|recipient|contact name|phone|mobile|email)\s+\S/iu;
 
   function withoutMetadata(text) {
     for (const match of text.matchAll(trailingMeta)) {
@@ -368,7 +378,13 @@
 
   function hasContactDetails(text) {
     return text.replace(phonePattern, '').replace(emailPattern, '') !== text ||
-      nonAddressLine.test(text.trim()) || withoutMetadata(text) !== text;
+      /[\r\n\u2028\u2029]|https?:\/\//iu.test(text) || chatHeader.test(text) ||
+      contactLabel.test(text) || personalNumber.test(text) || text.replace(deliveryDetail, '') !== text ||
+      deliveryNote.test(text) || recipientAfterAddress.test(text);
+  }
+
+  function validSearchCity(value) {
+    return typeof value === 'string' && value.length <= 160 && /\p{L}/u.test(value) && !hasContactDetails(value);
   }
 
   function extractAddresses(message) {
@@ -430,9 +446,13 @@
   }
 
   function extractDeliveryRows(message) {
+    const tooLong = 'הרשימה ארוכה מדי. אפשר לפצל אותה לחלקים של עד 32,000 תווים, 400 שורות ועד 1,500 תווים בשורה.';
+    if (message.length > 32000) throw new Error(tooLong);
+    const inputLines = message.split(/\r?\n/);
+    if (inputLines.length > 400 || inputLines.some(line => line.length > 1500)) throw new Error(tooLong);
     const sections = [];
     let section = [];
-    for (const raw of message.split(/\r?\n/)) {
+    for (const raw of inputLines) {
       let line = cleanImportLine(raw);
       if (!line || chatHeader.test(line) || (section.some(item => nameLabel.test(item)) && nameLabel.test(line))) {
         if (section.length) sections.push(section);
@@ -459,5 +479,5 @@
     return rows;
   }
 
-  return { detectLanguage, shortenAddress, displayFullAddress, stripHouseNumber, hasContactDetails, extractAddresses, extractDeliveryRows, findAddresses };
+  return { detectLanguage, shortenAddress, displayFullAddress, stripHouseNumber, hasContactDetails, validSearchCity, extractAddresses, extractDeliveryRows, findAddresses };
 }));

@@ -42,5 +42,29 @@ test('pasting previews locally and guided search waits for each address selectio
   await list.getByRole('button', {name:'שביל הבדיקה 22', exact:true}).tap();
   expect(queries).toEqual(['שביל הדמיון 1', 'שביל הבדיקה 22']);
   await expect(list.locator('input')).toHaveCount(0);
+  await expect(page.locator('#importMessage')).toHaveValue('');
+  await expect(page.locator('#discardImportBtn')).toBeHidden();
   await expect(page.locator('#intermediateLocationsList .chip')).toHaveCount(2);
+});
+
+test('oversized pastes stay editable and discarding partial imports clears personal text', async ({page}) => {
+  const requests = [];
+  await page.route('https://nominatim.openstreetmap.org/**', route => {
+    requests.push(route.request().url());
+    return route.fulfill({json:[]});
+  });
+  await page.goto('./');
+  await page.locator('#importToggle').tap();
+  const message = page.locator('#importMessage');
+  const long = 'א'.repeat(33000);
+  await message.fill(long);
+  await expect(page.locator('#importStatus')).toContainText('ארוכה מדי');
+  await expect(message).toHaveValue(long);
+  await expect(page.locator('#importRows input')).toHaveCount(0);
+  await message.fill('שם: איש בדיקה\nכתובת: רחוב הדגמה 7\nטלפון: 0000000001');
+  await expect(page.locator('#importRows')).toContainText('0000000001');
+  await page.locator('#discardImportBtn').tap();
+  await expect(message).toHaveValue('');
+  await expect(page.locator('#importRows')).toBeEmpty();
+  expect(requests).toHaveLength(0);
 });

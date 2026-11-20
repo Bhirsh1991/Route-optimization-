@@ -2,6 +2,24 @@ const { test, expect } = require('@playwright/test');
 
 test.use({ serviceWorkers: 'block' });
 
+test('a city containing contact details stays out of storage and geocoding', async ({page}) => {
+  let requests = 0;
+  await page.route('https://nominatim.openstreetmap.org/**', route => {
+    requests++;
+    return route.fulfill({json:[]});
+  });
+  await page.goto('/');
+  await page.locator('#areaButton').tap();
+  await page.locator('#searchCity').fill('Demo City, phone: 0000000001');
+  expect(await page.evaluate(() => localStorage.getItem('route-optimizer-search-city'))).toBeNull();
+  await page.locator('#closeArea').tap();
+  await page.locator('[data-step="1"] [data-step-toggle]').tap();
+  await page.locator('#startAddressInput').fill('Sample Park');
+  await page.locator('#setStartLocationBtn').tap();
+  await expect(page.locator('#startSuggestions')).toContainText('שם עיר בלבד');
+  expect(requests).toBe(0);
+});
+
 test('GPS is requested on tap, stays out of storage, and biases a search only after confirmation', async ({page, context}) => {
   await context.grantPermissions(['geolocation']);
   await context.setGeolocation({latitude: 32.321234, longitude: 34.856789});

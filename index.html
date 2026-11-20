@@ -2,6 +2,8 @@
 <html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-+HPAmQAi4lneyM9MlQEKNtLQUOqZ8whPXSf51qNI9cY='; script-src-attr 'none'; style-src 'self'; style-src-attr 'none'; img-src 'self'; font-src 'self'; manifest-src 'self'; worker-src 'self'; connect-src 'self' https://nominatim.openstreetmap.org https://router.project-osrm.org; object-src 'none'; base-uri 'none'; form-action 'none'">
+    <meta name="referrer" content="strict-origin">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>מסלולים — תכנון וניווט</title>
     <meta name="color-scheme" content="light dark">
@@ -40,7 +42,7 @@
             <section id="areaEditor" class="sheet plan-editor" aria-labelledby="searchAreaTitle" hidden>
                 <h2 id="searchAreaTitle">אזור החיפוש</h2>
                 <label for="searchCity">עיר לכל הכתובות (רשות)</label>
-                <input id="searchCity" type="text" dir="auto" autocomplete="off" placeholder="לדוגמה: נתניה">
+                <input id="searchCity" type="text" dir="auto" autocomplete="off" spellcheck="false" placeholder="לדוגמה: נתניה">
                 <button id="locateSearchArea" type="button" class="secondary" aria-describedby="searchAreaStatus">שימוש במיקום שלי</button>
                 <p id="searchAreaStatus" aria-live="polite" class="muted">בחיפוש לפי המיקום שלך, שירות הכתובות יקבל אזור משוער.</p>
                 <div class="plan-actions">
@@ -56,11 +58,12 @@
                 </summary>
                 <div class="sheet plan-editor">
                     <label for="importMessage">הודעות להדבקה</label>
-                    <textarea id="importMessage" rows="4" placeholder="רחוב ומספר בית" aria-describedby="importPrivacy"></textarea>
+                    <textarea id="importMessage" rows="4" autocomplete="off" spellcheck="false" placeholder="רחוב ומספר בית" aria-describedby="importPrivacy"></textarea>
                     <p id="importPrivacy" class="muted">פרטי המסירה נשארים במכשיר. רק הכתובת שתבחרו לחפש תישלח לשירות המפות.</p>
                     <div class="plan-actions">
                         <button type="button" id="previewMessageBtn" class="secondary">הצג כתובות לבדיקה</button>
                         <button type="button" id="guidedImportBtn" class="primary hidden">התחל חיפוש ברשימה</button>
+                        <button type="button" id="discardImportBtn" class="text-button" hidden>מחיקת ההודעה שהודבקה</button>
                     </div>
                     <p id="importStatus" class="muted" role="status"></p>
                     <div id="importRows"></div>
@@ -77,7 +80,7 @@
                     <div id="startEditor" class="step-body plan-editor hidden">
                         <label for="startAddressInput">כתובת התחלה</label>
                         <div class="input-actions">
-                            <input type="text" id="startAddressInput" dir="auto" enterkeyhint="search" placeholder="רחוב, מספר בית או מקום">
+                            <input type="text" id="startAddressInput" dir="auto" enterkeyhint="search" autocomplete="off" spellcheck="false" placeholder="רחוב, מספר בית או מקום">
                             <button id="setStartLocationBtn" class="primary" type="button">חפש כתובת</button>
                         </div>
                         <div id="startSuggestions" class="suggestions" aria-label="תוצאות חיפוש עבור כתובת התחלה" aria-live="polite"></div>
@@ -93,7 +96,7 @@
                     <div id="endEditor" class="step-body plan-editor hidden">
                         <label for="endAddressInput">כתובת סיום</label>
                         <div class="input-actions">
-                            <input type="text" id="endAddressInput" dir="auto" enterkeyhint="search" placeholder="רחוב, מספר בית או מקום">
+                            <input type="text" id="endAddressInput" dir="auto" enterkeyhint="search" autocomplete="off" spellcheck="false" placeholder="רחוב, מספר בית או מקום">
                             <button id="setEndLocationBtn" class="primary" type="button">חפש כתובת</button>
                         </div>
                         <div id="endSuggestions" class="suggestions" aria-label="תוצאות חיפוש עבור כתובת סיום" aria-live="polite"></div>
@@ -109,7 +112,7 @@
                 <div id="stopEditor" class="step-body plan-editor hidden">
                     <label for="intermediateAddressInput">כתובת העצירה</label>
                     <div class="input-actions">
-                        <input type="text" id="intermediateAddressInput" dir="auto" enterkeyhint="search" placeholder="רחוב, מספר בית או מקום">
+                        <input type="text" id="intermediateAddressInput" dir="auto" enterkeyhint="search" autocomplete="off" spellcheck="false" placeholder="רחוב, מספר בית או מקום">
                         <button id="addIntermediateLocationBtn" class="primary" type="button">חפש כתובת</button>
                     </div>
                     <div id="intermediateSuggestions" class="suggestions" aria-label="תוצאות חיפוש לעצירת ביניים" aria-live="polite"></div>
@@ -126,11 +129,12 @@
                 <div id="saveEditor" class="step-body plan-editor hidden">
                     <label for="saveRouteNameInput">שם המסלול</label>
                     <div class="input-actions">
-                        <input type="text" id="saveRouteNameInput" placeholder="לדוגמה: חלוקה ביום חמישי">
+                        <input type="text" id="saveRouteNameInput" autocomplete="off" spellcheck="false" placeholder="לדוגמה: חלוקה ביום חמישי">
                         <button id="saveRouteBtn" class="primary" type="button">שמור מסלול</button>
                     </div>
                     <p id="saveSuccess" class="hidden muted" role="status">נשמר בהצלחה</p>
                     <button id="openSavedRoutesPanelBtn" class="text-button" type="button" aria-haspopup="dialog">פתח מסלולים שמורים</button>
+                    <button id="clearCurrentTrip" class="text-button" type="button">מחיקת הטיוטה מהמכשיר</button>
                 </div>
             </section>
         </section>
@@ -601,9 +605,10 @@
 
         function updateAreaLabel() {
             const {area} = searchContext();
-            const label = area.city || (Number.isFinite(area.lat) ? 'בקרבת מקום' : 'אזור חיפוש');
+            const city = RouteGeocode.validSearchCity(area.city) ? area.city : '';
+            const label = city || (Number.isFinite(area.lat) ? 'בקרבת מקום' : 'אזור חיפוש');
             document.getElementById('areaLabel').textContent = label;
-            areaButton.setAttribute('aria-label', area.city || Number.isFinite(area.lat) ? 'אזור חיפוש · ' + label : label);
+            areaButton.setAttribute('aria-label', city || Number.isFinite(area.lat) ? 'אזור חיפוש · ' + label : label);
         }
         const searchContext = mountSearchArea(() => {
             resetStartSearch();
@@ -1004,6 +1009,19 @@
         saveRouteNameInput.value = typeof initialDraft?.name === 'string' ? initialDraft.name : '';
         applyRoute(initialDraft || {intermediateLocations: []}, initialDraft?.activeStep);
         updateSavedRoutesList();
+        document.getElementById('clearCurrentTrip').addEventListener('click', () => {
+            if (!window.confirm('למחוק את הטיוטה הנוכחית ואת ההתקדמות בניווט מהמכשיר? מסלולים ששמרת בשם יישארו זמינים.')) return;
+            resetAddressPickers();
+            saveRouteNameInput.value = '';
+            renderRoutePreview(null);
+            applyRoute({intermediateLocations: []}, 0, 'plan');
+            try {
+                localStorage.removeItem(DRAFT_KEY);
+                showMessage('הטיוטה נמחקה מהמכשיר.', 'success');
+            } catch {
+                showMessage('הטיוטה נוקתה מהמסך. הדפדפן לא אפשר למחוק את העותק השמור.', 'error');
+            }
+        });
         mountAiImport(searchContext, () => Boolean(startLocation || endLocation || intermediateLocations.length || saveRouteNameInput.value),
             route => {
                 resetAddressPickers();

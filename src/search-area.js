@@ -18,7 +18,9 @@ function mountSearchArea(onChange) {
   }
 
   try {
-    city.value = localStorage.getItem(cityKey) || '';
+    const savedCity = localStorage.getItem(cityKey);
+    if (savedCity && RouteGeocode.validSearchCity(savedCity)) city.value = savedCity;
+    else if (savedCity) remember(cityKey, '');
     country.checked = localStorage.getItem(countryKey) === 'true';
   } catch { /* Browser storage is optional. */ }
 
@@ -31,8 +33,10 @@ function mountSearchArea(onChange) {
     request++;
     position = null;
     locate.disabled = false;
-    remember(cityKey, city.value.trim());
-    updateStatus();
+    const value = city.value.trim();
+    const valid = !value || RouteGeocode.validSearchCity(value);
+    remember(cityKey, valid ? value : '');
+    updateStatus(valid ? '' : 'הזינו שם עיר בלבד, ללא פרטי קשר או מסירה.');
     onChange();
   }
   city.addEventListener('input', useTypedCity);

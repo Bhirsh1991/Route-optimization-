@@ -37,6 +37,12 @@ The app includes a service worker and manifest so it can be installed as a PWA.
 2. Use **Install App** (desktop) or **Add to Home Screen** (mobile) to install it.
 3. After the first successful online visit, the planner can reopen offline with locally stored routes. New address searches and driving-time calculations need a connection.
 
+## Privacy on a shared phone
+
+The current trip, named routes and appearance settings use this browser's local storage. In the planning screen, open the save section and choose **מחיקת הטיוטה מהמכשיר** to delete the current route and its navigation progress. Delete named trips separately in **שמורים**. A copied WhatsApp message can be discarded in the import panel, and completing the import clears the message from the form.
+
+Anyone with a route link can read its addresses. The planner removes the address fragment from the browser's current history entry as soon as it opens the review. A refresh before confirmation discards that review. Explicit address searches send the street and search area to Nominatim; calculations send coordinates to OSRM. Opening a navigation link shares its destinations with the selected navigation provider.
+
 ## Development
 
 The published files are static. The page uses vanilla JavaScript and a local Tailwind stylesheet. Run `npm run build` after changing HTML, scripts or assets and commit the generated `assets/app.css` and `service-worker.js`. The build refreshes the offline shell revision.
