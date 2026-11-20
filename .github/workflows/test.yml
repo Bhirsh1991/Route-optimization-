@@ -20,6 +20,8 @@ jobs:
         run: |
           npm run build
           git diff --exit-code -- assets/app.css service-worker.js
+      - name: Check downloadable AI skills against the source
+        run: python3 scripts/build-ai-skill.py --check
       - name: Check JS syntax
         run: |
           for f in $(git ls-files '*.js'); do

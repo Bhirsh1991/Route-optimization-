@@ -1,30 +1,15 @@
 (function(root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory();
-  else root.routing = factory();
-}(typeof self !== 'undefined' ? self : this, function() {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./road-table'));
+  else root.routing = factory(root.RoadTable);
+}(typeof self !== 'undefined' ? self : this, function(roadTable) {
   const MAX_MAPS_WAYPOINTS = 9;
   const MOBILE_WAYPOINTS = 3;
   const MAX_MAPS_URL_LENGTH = 2048;
 
   async function getOSRMTable(points, signal) {
-    const coordinates = points.map(({ lat, lng }) => {
-      if (!Number.isFinite(lat) || Math.abs(lat) > 90 || !Number.isFinite(lng) || Math.abs(lng) > 180) {
-        throw new Error('לאחת הנקודות אין מיקום תקין. יש לבחור אותה מחדש.');
-      }
-      return `${lng},${lat}`;
-    });
-    const url = 'https://router.project-osrm.org/table/v1/driving/' + coordinates.join(';');
-    const response = await fetch(url, { signal });
+    const response = await fetch(roadTable.tableUrl(points), { signal });
     if (!response.ok) throw new Error('שירות הניתוב לא הצליח לחשב את זמני הנסיעה. אפשר לנסות שוב.');
-    const data = await response.json();
-    const matrix = data.durations;
-    const n = points.length;
-    if (data.code !== 'Ok' || !Array.isArray(matrix) || matrix.length !== n ||
-        !matrix.every(row => Array.isArray(row) && row.length === n &&
-          row.every(value => value === null || (Number.isFinite(value) && value >= 0)))) {
-      throw new Error('שירות הניתוב לא החזיר זמני נסיעה תקינים לכל הנקודות.');
-    }
-    return matrix;
+    return roadTable.durations(await response.json(), points.length);
   }
 
   function directionsUrl(values) {

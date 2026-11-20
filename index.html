@@ -179,12 +179,28 @@
 
         </main>
         <footer class="credits">
+            <p><a href="ai/" class="underline">תכנון דרך ChatGPT או Gemini</a></p>
             חיפוש באמצעות <a href="https://nominatim.org/" target="_blank" rel="noopener noreferrer" class="underline">Nominatim</a> ·
             ניתוב באמצעות <a href="https://project-osrm.org/" target="_blank" rel="noopener noreferrer" class="underline">OSRM</a> ·
             נתוני מפה © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" class="underline">תורמי OpenStreetMap</a> ·
             כתובות בנתניה: <a href="https://www.odata.org.il/dataset/ac1ae1fa-6d43-4685-8434-9953e950ca9b" target="_blank" rel="noopener noreferrer" class="underline">התמנון – מידע ציבורי לכל, CC BY</a>
         </footer>
     </div>
+    <dialog class="dialog" id="aiImportDialog" aria-labelledby="aiImportTitle">
+        <div class="sheet-head"><h2 id="aiImportTitle">מסלול מהצ׳אט</h2><button type="button" class="text-button" id="aiImportClose">סגירה</button></div>
+        <form id="aiImportForm" novalidate>
+            <p>בדקו את הכתובות לפני החישוב. כתובות שדרוש להן חיפוש יישלחו לשירות המפות, והמיקומים יישלחו לשירות הניתוב.</p>
+            <p id="aiDraftNotice" hidden>המסלול החדש יחליף את הטיוטה הפתוחה כשהחישוב יצליח.</p>
+            <label for="aiImportCity">עיר משותפת (רשות)</label>
+            <input id="aiImportCity" type="text" dir="auto" autocomplete="off" maxlength="160">
+            <button id="aiImportLocate" type="button" class="text-button">חיפוש ליד המיקום שלי</button>
+            <p id="aiImportArea" hidden></p>
+            <ol id="aiImportRows" aria-label="הכתובות מהצ׳אט"></ol>
+            <button id="aiImportRun" type="submit" class="primary">בדיקת כתובות וחישוב מסלול</button>
+        </form>
+        <p id="aiImportStatus" role="status"></p>
+        <button id="aiImportKeepRepeats" type="button" class="secondary" hidden>אלו ביקורים נפרדים באותה כתובת. לשמור את כולם</button>
+    </dialog>
     <dialog class="dialog" id="appearanceDialog" aria-labelledby="appearanceTitle">
         <div class="sheet-head"><h2 id="appearanceTitle">עיצוב</h2><button type="button" class="text-button" id="closeAppearance">סגירה</button></div>
         <fieldset><legend>מצב תצוגה</legend>
@@ -223,12 +239,16 @@
 
     <script src="src/planner-state.js"></script>
     <script src="src/optimizer.js"></script>
+    <script src="src/road-table.js"></script>
     <script src="src/routing.js"></script>
     <script src="src/waze.js"></script>
+    <script src="src/address-reference.js"></script>
     <script src="src/netanya-reference.js"></script>
     <script src="src/geocode.js"></script>
     <script src="src/address-picker.js"></script>
     <script src="src/search-area.js"></script>
+    <script src="src/ai-route.js"></script>
+    <script src="src/ai-import.js"></script>
 
     <script>
         let intermediateLocations = [];
@@ -984,6 +1004,13 @@
         saveRouteNameInput.value = typeof initialDraft?.name === 'string' ? initialDraft.name : '';
         applyRoute(initialDraft || {intermediateLocations: []}, initialDraft?.activeStep);
         updateSavedRoutesList();
+        mountAiImport(searchContext, () => Boolean(startLocation || endLocation || intermediateLocations.length || saveRouteNameInput.value),
+            route => {
+                resetAddressPickers();
+                saveRouteNameInput.value = '';
+                applyRoute(route, 0, 'drive');
+                setPlannerView('drive');
+            });
     </script>
 </body>
 </html>

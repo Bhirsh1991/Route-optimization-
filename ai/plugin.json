@@ -1,0 +1,16 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "route-planner",
+  "version": "1.0.0",
+  "description": "Plan delivery stops with Maslulim and return a mobile route link.",
+  "homepage": "https://bhirsh1991.github.io/Route-optimization-/ai/",
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "מסלולים",
+        "shortDescription": "תכנון מסלול חלוקה מתוך רשימת כתובות",
+        "defaultPrompt": ["הכן מסלול חלוקה מהרשימה שלי באמצעות האתר מסלולים"]
+      }
+    }
+  }
+}
